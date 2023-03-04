@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% import 'bootstrap/wtf.html' as wtf %}
+
+{% block frontend_content %}
+    <hr>
+    <h1>Change MemCache Configuration</h1>
+    <hr>
+    {{ wtf.quick_form(form) }}
+    <hr>
+    {% if keys != None %}
+        <h4>Keys currently in cache:</h4>
+        <ol>
+            {% for key in keys %}
+            <li>{{ key }}</li>
+            {% endfor %}
+        </ol>
+    {% else %}
+        <p>No keys/value pairs currently in cache!</p>
+    {% endif %}
+{% endblock %}
