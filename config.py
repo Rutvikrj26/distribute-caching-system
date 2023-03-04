@@ -11,3 +11,4 @@ class Config(object):
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     UPLOAD_FOLDER = 'static'
     ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
+    S3_BUCKET_NAME = "your_bucket_name_here"
