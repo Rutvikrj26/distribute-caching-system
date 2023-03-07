@@ -5,8 +5,7 @@ import hashlib
 import threading
 from config import Config
 from manager_app import manager_app
-from flask import jsonify, request
-
+from flask import jsonify, request, render_template
 
 memapp_urls = [
     Config.MEMAPP_0_URL,
@@ -31,7 +30,10 @@ manager_app_data = {
     "shrink_multiplier": 0.5,
     "automatic": 1
 }
-
+@manager_app.route("/")
+@manager_app.route("/home")
+def home():
+    return render_template('home.html', title="ECE1779 - Group 25 - Gauri Billore, Joseph Longpre, Rutvik Solanki")
 
 @manager_app.route("/get", methods=['GET', 'POST'])
 def get():
