@@ -4,6 +4,8 @@ import logging
 import hashlib
 import threading
 from config import Config
+from frontend import frontend
+from frontend.models import MemcacheConfig
 from manager_app import manager_app
 from flask import jsonify, request
 
@@ -29,7 +31,9 @@ manager_app_data = {
     "shrink_threshold": 0.2,
     "expand_multiplier": 2.0,
     "shrink_multiplier": 0.5,
-    "automatic": 1
+    "automatic": 1,
+    "isRandom": 1,
+    "maxSize": 2
 }
 
 
@@ -121,6 +125,27 @@ def clearcache():
     return jsonify({"status": "success", "status_code": 200})
 
 
+@manager_app.route('/refresh_config', methods=['POST'])
+def refresh_configuration():
+    with frontend.app_context():
+        logging.info("Updating configuration information...")
+        memcache_config_data = MemcacheConfig.query.first()
+        assert(memcache_config_data is not None)
+        manager_app_data["isRandom"] = memcache_config_data.isRandom
+        manager_app_data["max_size"] = memcache_config_data.maxSize
+
+    # Forward fresh configuration data to ALL nodes, active or otherwise
+    for i in range(0, Config.MAX_NODES):
+        response = requests.post(memapp_urls[i] + "/refresh_config", data={'isRandom': manager_app_data["isRandom"], 'max_size': manager_app_data["max_size"]})
+        jsonResponse = response.json()
+        if jsonResponse["status_code"] == 200:
+            logging.info(f"Successfully refreshed memcache_config on node {i}!")
+        else:
+            logging.info(f"ERROR! Node {i} failed to refresh its configuration...")
+
+    return jsonify({"status": "success", "status_code": 200})
+
+
 @manager_app.route("/update_statistics", methods=['GET', 'POST'])
 def update_statistics():
     # TODO: Pass information from frontend webpage about automatic/manual mode, grow/shrink multipliers, etc.
@@ -141,6 +166,12 @@ def update():
     return jsonify({"status": "success", "status_code": 200})
 
 
+@manager_app.route("/getNumNodes", methods=['GET', 'POST'])
+def get_num_nodes():
+    numNodes = manager_app_data['num_active_nodes']
+    return jsonify({"status": "success", "status_code": 200, "numNodes": numNodes})
+
+
 def monitor_hit_and_miss_rates():
     while True:
         logging.info("Starting 5 second sleep timer...")
@@ -157,7 +188,7 @@ def monitor_hit_and_miss_rates():
 
         if manager_app_data['automatic'] == 1:
             if miss_rate > manager_app_data['expand_threshold'] and miss_rate > manager_app_data['last_miss_rate']:
-                if manager_app_data['num_active_nodes'] < 8:
+                if manager_app_data['num_active_nodes'] < Config.MAX_NODES:
                     expand_node_pool()
             elif miss_rate < manager_app_data['shrink_threshold'] and miss_rate < manager_app_data['last_miss_rate']:
                 if manager_app_data['num_active_nodes'] > 1:
@@ -171,7 +202,7 @@ def expand_node_pool(manual=False):
     if manual:
         manager_app_data['num_active_nodes'] += 1
     else:
-        manager_app_data['num_active_nodes'] = int(manager_app_data['num_active_nodes'] * manager_app_data['expand_multiplier'])
+        manager_app_data['num_active_nodes'] = min(int(manager_app_data['num_active_nodes'] * manager_app_data['expand_multiplier']), Config.MAX_NODES)
     # Write back keys to smaller node pool
     for key in key_value_dict.keys():
         value = key_value_dict[key]
@@ -196,7 +227,7 @@ def shrink_node_pool(manual=False):
     if manual:
         manager_app_data['num_active_nodes'] -= 1
     else:
-        manager_app_data['num_active_nodes'] = int(manager_app_data['num_active_nodes'] * manager_app_data['shrink_multiplier'])
+        manager_app_data['num_active_nodes'] = max(int(manager_app_data['num_active_nodes'] * manager_app_data['shrink_multiplier']), 1)
     # Write back keys to smaller node pool
     for key in key_value_dict.keys():
         value = key_value_dict[key]

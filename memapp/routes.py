@@ -144,15 +144,13 @@ def update():
     logging.info("Logging thread started successfully...")
     return jsonify({"status": "success", "status_code": 200})
 
+
 # Refresh Configuration by querying it from the database
 @memapp.route('/refresh_config', methods=['POST'])
 def refresh_configuration():
-    with frontend.app_context():
-        logging.info("Updating configuration information...")
-        memcache_config_data = MemcacheConfig.query.first()
-        assert(memcache_config_data is not None)
-        memcache_data["isRandom"] = memcache_config_data.isRandom
-        memcache_data["max_size"] = memcache_config_data.maxSize
+    logging.info("Updating configuration...")
+    memcache_data["isRandom"] = int(request.form['isRandom'])
+    memcache_data["max_size"] = int(request.form['max_size'])
 
     # Resize the cache if we shrink it and need to evict items
     if memcache_data["max_size"] < memcache_data["cache_size"]:

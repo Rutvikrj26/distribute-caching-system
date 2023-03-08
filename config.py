@@ -10,6 +10,7 @@ class Config(object):
     UPLOAD_FOLDER = 'static'
     ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
     S3_BUCKET_NAME = "your_bucket_name_here"
+    MAX_NODES = 8
 
     # IP ADDRESSES
     FRONTEND_URL = "http://127.0.0.1:5000/"
