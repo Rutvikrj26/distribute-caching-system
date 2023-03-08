@@ -7,10 +7,11 @@ from datetime import datetime, timedelta
 
 
 @mock_s3
-def upload_fileobj(key, file_storage_object):
+def upload_fileobj(key, file_storage_object, bucket):
     try:
+        logging.info("Attempting to upload image to S3...")
         s3 = boto3.client('s3')
-        s3.upload_fileobj(file_storage_object, Config.S3_BUCKET_NAME, key)
+        s3.upload_fileobj(file_storage_object, bucket, key)
     except Exception:
         logging.info("S3 Error: Could not upload file object...")
         return False
@@ -19,11 +20,12 @@ def upload_fileobj(key, file_storage_object):
 
 
 @mock_s3
-def download_fileobj(key):
+def download_fileobj(key, bucket):
     try:
+        logging.info("Attempting to download image from S3...")
         my_file_storage = FileStorage()
         s3 = boto3.client('s3')
-        s3.download_fileobj(Config.S3_BUCKET_NAME, key, my_file_storage)
+        s3.download_fileobj(bucket, key, my_file_storage)
     except Exception:
         logging.info("S3 Error - Could not download file object...")
         return None
@@ -32,11 +34,11 @@ def download_fileobj(key):
 
 
 @mock_s3
-def generate_presigned_url(key, expiry=1800):
+def generate_presigned_url(key, bucket, expiry=1800):
     try:
         logging.info("Attempting to get presigned URL for uploaded image...")
         s3 = boto3.client('s3')
-        image_url = s3.generate_presigned_url('get_object', Params={'Bucket': Config.S3_BUCKET_NAME, 'Key': key}, ExpiresIn=expiry)
+        image_url = s3.generate_presigned_url('get_object', Params={'Bucket': bucket, 'Key': key}, ExpiresIn=expiry)
     except Exception:
         logging.info(f"FAIL! Could not get url for image with key = {key}")
         image_url = None
@@ -73,24 +75,27 @@ def get_hits_and_misses_from_cloudwatch(period_in_minutes=1):
     cloudwatch = boto3.client('cloudwatch')
 
     try:
+        logging.info("Sending hit/miss get request to Cloudwatch...")
         response = cloudwatch.get_metric_data(
             MetricDataQueries=[
                 {
                     'Id': 'HIT',
                     'MetricStat': {
                         'Metric': {
+                            'Namespace': 'SITE/TRAFFIC',
                             'MetricName': 'hit_rate'
                         },
                         'Period': 60,
                         'Stat': 'Sum'
                     },
                     'ReturnData': False,
-                    'Period': period
+                    'Period': period_in_seconds
                 },
                 {
                     'Id': 'MISS',
                     'MetricStat': {
                         'Metric': {
+                            'Namespace': 'SITE/TRAFFIC',
                             'MetricName': 'miss_rate'
                         },
                         'Period': 60,
@@ -106,10 +111,12 @@ def get_hits_and_misses_from_cloudwatch(period_in_minutes=1):
             MaxDataPoints=200               # We shouldn't need more than 200 hits and misses for this
         )
 
+        logging.info("Parsing data from Cloudwatch response...")
         metric_0_name = response['MetricDataResults'][0]['Id']
         metric_0_value = response['MetricDataResults'][0]['Values']
         metric_1_value = response['MetricDataResults'][1]['Values']
     except Exception:
+        logging.info("ERROR! Could not get or parse data from Cloudwatch response...")
         return None, None
 
     if metric_0_name == "HIT":
@@ -119,4 +126,28 @@ def get_hits_and_misses_from_cloudwatch(period_in_minutes=1):
         hits = metric_1_value
         misses = metric_0_value
 
+    logging.info("Successfully retrieved and parsed Cloudwatch metric data!")
     return hits, misses
+
+
+@mock_cloudwatch
+def put_data_to_cloudwatch(metric_name, value):
+    try:
+        logging.info(f"Putting {metric_name} data with value {value} to Cloudwatch...")
+        cloudwatch = boto3.client('cloudwatch')
+        cloudwatch.put_metric_data(
+            NameSpace='SITE/TRAFFIC',
+            MetricData=[
+                {
+                    'MetricName': metric_name,
+                    'Unit': None,
+                    'Value': value
+                }
+            ]
+        )
+    except Exception:
+        logging.info("ERROR! Could not put metric data to Cloudwatch...")
+        return False
+
+    logging.info("Successfully put metric data to Cloudwatch!")
+    return True

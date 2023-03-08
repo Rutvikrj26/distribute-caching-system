@@ -16,6 +16,7 @@ logger.setLevel(logging.INFO)
 global commits_running
 commits_running = False
 
+
 @frontend.route('/')
 @frontend.route('/index')
 def index():
@@ -35,19 +36,6 @@ def upload():
             flash("File type is not allowed - please upload a PNG, JPEG, JPG, or GIF file.")
             return redirect(url_for('upload'))
 
-        # Store on S3 and activate pre-signed URL for 30 mins
-        upload_successful = aws_helper.upload_fileobj(key, file)
-        if not upload_successful:
-            logging.info("FAIL!!! Could not save image to S3")
-            flash("ERROR: Could not save the image to S3. Please try again later.")
-            return redirect(url_for('upload'))
-        image_url = aws_helper.generate_presigned_url(key)
-        if image_url is None:
-            logging.info("FAIL!!! Could not get presigned url for image from S3...")
-            flash("ERROR: Could not save the image to S3. Please try again later.")
-            return redirect(url_for('upload'))
-        logging.info("Successfully saved image to S3!")
-
         # Store in database
         try:
             with frontend.app_context():
@@ -56,7 +44,7 @@ def upload():
                 if image:
                     db.session.delete(image)
                     db.session.commit()
-                image = Image(id=key, value=image_url)
+                image = Image(id=key, value=Config.S3_BUCKET_NAME)
                 db.session.add(image)
                 db.session.commit()
                 logging.info("Successfully saved image to database")
@@ -83,6 +71,16 @@ def upload():
             logging.info("FAIL!!! Error encoding file or sending encoded file to cache.")
             flash("ERROR: Could not store image in cache...")
             return redirect(url_for('upload'))
+
+        # Store on S3
+        response = requests.post(Config.S3_APP_URL + "upload_image",
+                                 data={'key': key, 'value': b64string, 'bucket': Config.S3_BUCKET_NAME})
+        jsonResponse = response.json()
+        if jsonResponse['status_code'] != 200:
+            logging.info("FAIL!!! Could not save image to S3")
+            flash("ERROR: Could not save the image to S3. Please try again later.")
+            return redirect(url_for('upload'))
+        logging.info("Successfully saved image to S3!")
         flash("Image successfully uploaded!")
         return redirect(url_for('upload'))
 
@@ -99,7 +97,7 @@ def display():
 
         # Try cache first
         logging.info("Trying cache first...")
-        response = requests.post(Config.MANAGER_APP_URL+"/get", data={'key': key})
+        response = requests.post(Config.MANAGER_APP_URL + "/get", data={'key': key})
         jsonResponse = response.json()
         if jsonResponse["status_code"] == 200:
             logging.info("Image found in cache, accessing...")
@@ -117,17 +115,20 @@ def display():
                 return redirect(url_for('display'))
             else:
                 logging.info("Image found on disk...")
-                image_location = image.value
-
-            # Now need to store back in the cache!
+                bucket = image.value
             logging.info(f"Putting image with key = {key} into cache")
-            my_file_storage = aws_helper.download_fileobj(key)
-            if my_file_storage is None:
-                logging.info("FAIL!!! Could not return the image to cache - bad fileobj from S3")
+            response = requests.post(Config.S3_APP_URL + "download_image",
+                                     data={'key': key, 'bucket': bucket})
+            jsonResponse = response.json()
+            if jsonResponse['status_code'] != 200:
+                logging.info("FAIL!!! Could not return the image to cache - S3 failure")
                 flash("ERROR: Could not receive fileobj from S3...")
                 return redirect(url_for('display'))
-            b64string = b64encode(my_file_storage.read()).decode("ASCII")
-            response = requests.post(Config.MANAGER_APP_URL+"/put", data={'key': key, 'value': b64string})
+            b64string = jsonResponse['value']
+
+            # Now need to store back in the cache!
+            logging.info(f"Successfully retrieved b64string from s3_app for key = {key}")
+            response = requests.post(Config.MANAGER_APP_URL + "/put", data={'key': key, 'value': b64string})
             jsonResponse = response.json()
             if jsonResponse["status_code"] == 200:
                 logging.info("Successfully uploaded image to cache")
@@ -160,8 +161,9 @@ def show_delete_keys():
             flash("WARNING: Could not delete key/image pairs from database")
 
         # Next, delete from disk:
-        images_deleted = aws_helper.delete_all_from_s3()
-        if not images_deleted:
+        response = requests.post(Config.S3_APP_URL + "delete_all")
+        jsonResponse = response.json()
+        if jsonResponse['status_code'] != 200:
             logging.info("FAIL!!! Could not delete key/image pairs from S3")
             flash("WARNING: Could not delete key/image pairs from S3...")
 
@@ -202,9 +204,10 @@ def memcache_config():
             current_memcache_config.isRandom = form.policy.data
             current_memcache_config.maxSize = form.capacity.data
             db.session.commit()
-        response = requests.post(Config.MANAGER_APP_URL+"/refresh_config")
+        response = requests.post(Config.MANAGER_APP_URL + "/refresh_config")
         if response.status_code == 200:
-            logging.info(f"Memcache configuration updated with isRandom = {form.policy.data} and maxSize = {form.capacity.data}")
+            logging.info(
+                f"Memcache configuration updated with isRandom = {form.policy.data} and maxSize = {form.capacity.data}")
             flash("Successfully updated the memcache configuration!")
         else:
             logging.info("ERROR! Bad response from manager: could not update cache pool with new memcache_config...")
@@ -218,7 +221,8 @@ def memcache_config():
                 logging.info("FAIL!!! Could not delete from memcache")
                 flash("ERROR: Could not delete all key/value pairs from cache")
         return redirect(url_for('memcache_config'))
-    return render_template('memcache_config.html', title="ECE1779 - Group 25 - Configure the memcache", form=form, keys=keys)
+    return render_template('memcache_config.html', title="ECE1779 - Group 25 - Configure the memcache", form=form,
+                           keys=keys)
 
 
 # TODO: Last page that needs updating
@@ -247,14 +251,17 @@ def memcache_stats():
         current_size_val = [row.current_size for row in graphing_data]
         gets_served_val = [(row.hits + row.misses) for row in graphing_data]
         posts_served_val = [row.posts_served for row in graphing_data]
-        miss_rate_val = [( 0 if (row.hits + row.misses == 0) else (row.misses * 100 / (row.hits + row.misses))) for row in graphing_data]
-        hit_rate_val = [( 0 if (row.hits + row.misses == 0) else (row.hits * 100 / (row.hits + row.misses))) for row in graphing_data]
+        miss_rate_val = [(0 if (row.hits + row.misses == 0) else (row.misses * 100 / (row.hits + row.misses))) for row
+                         in graphing_data]
+        hit_rate_val = [(0 if (row.hits + row.misses == 0) else (row.hits * 100 / (row.hits + row.misses))) for row in
+                        graphing_data]
 
     return render_template('memcache_stats.html', title="ECE1779 - Group 25 - View memcache Statistics",
                            max_size=max_size, num_items=num_items, current_size=current_size, gets_served=gets_served,
                            posts_served=posts_served, miss_rate=miss_rate, hit_rate=hit_rate,
                            current_policy=current_policy, labels=graph_labels, hit_rate_val=hit_rate_val,
-                           miss_rate_val=miss_rate_val, posts_served_val=posts_served_val, gets_served_val=gets_served_val,
+                           miss_rate_val=miss_rate_val, posts_served_val=posts_served_val,
+                           gets_served_val=gets_served_val,
                            num_items_val=num_items_val, current_size_val=current_size_val)
 
 
@@ -284,17 +291,23 @@ def api_delete_all():
     response = requests.post(Config.MANAGER_APP_URL + 'clearcache')
     if response.status_code == 200:
         logging.info("Successfully deleted all entries from cache")
+        cache_success = True
     else:
         logging.info("FAIL!!! Could not delete from memcache")
+        cache_success = False
 
-    # Also clear files from S3
-    images_deleted = aws_helper.delete_all_from_s3()
-    if not images_deleted:
+    # Next delete from S3
+    response = requests.post(Config.S3_APP_URL + "delete_all")
+    jsonResponse = response.json()
+    if jsonResponse['status_code'] == 200:
+        logging.info("Successfully deleted all entries from database, cache, and disk")
+        s3_success = True
+    else:
         logging.info("FAIL!!! Could not delete key/image pairs from S3")
-    logging.info("Successfully deleted all objects from S3!")
+        s3_success = False
 
     # Verify that everything passed
-    if db_success and response.status_code == 200 and images_deleted:
+    if db_success and cache_success and s3_success:
         logging.info("Successfully deleted all entries from database, cache, and disk")
         return jsonify({"success": "true"})
     else:
@@ -328,20 +341,13 @@ def api_upload():
             logging.info("File type is not allowed - please upload a PNG, JPEG, JPG, or GIF file.")
             return {"success": "false", "key": [request_key]}
 
-        # Store on S3 and activate pre-signed URL for 30 mins
-        upload_successful = aws_helper.upload_fileobj(request_key, request_file)
-        if not upload_successful:
-            logging.info("FAIL!!! Could not save image to S3")
-            return {"success": "false", "key": [request_key]}
-        image_url = aws_helper.generate_presigned_url(request_key)
-        logging.info(f"Image successfully saved to disk")
-
+        # Upload to database
         with frontend.app_context():
             image = Image.query.filter_by(id=request_key).first()
             if image:
                 db.session.delete(image)
                 db.session.commit()
-            image = Image(id=request_key, value=image_url)
+            image = Image(id=request_key, value=Config.S3_BUCKET_NAME)
             db.session.add(image)
             db.session.commit()
             logging.info(f"Image successfully saved in database")
@@ -356,7 +362,7 @@ def api_upload():
             logging.info(f"Attempting to convert file to string to save in memcache")
             b64string = b64encode(request_file.read()).decode("ASCII")
             logging.info(f"Image successfully converted to string")
-            response = requests.post(Config.MANAGER_APP_URL+"put", data={"key": request_key, "value": b64string})
+            response = requests.post(Config.MANAGER_APP_URL + "put", data={"key": request_key, "value": b64string})
             jsonResponse = response.json()
             if jsonResponse["status_code"] == 200:
                 logging.info("Image successfully saved in cache")
@@ -367,11 +373,23 @@ def api_upload():
             else:
                 logging.info("FAIL!!! Image could not be saved in cache!")
                 memapp_success = False
+
+            # Store on S3
+            response = requests.post(Config.S3_APP_URL + "upload_image",
+                                     data={'key': request_key, 'value': b64string, 'bucket': Config.S3_BUCKET_NAME})
+            jsonResponse = response.json()
+            if jsonResponse['status_code'] == 200:
+                logging.info("Successfully saved image to S3!")
+                s3_success = True
+            else:
+                logging.info("FAIL!!! Could not save image to S3")
+                s3_success = False
+
         except Exception:
             logging.info(f"FAIL!!! Failed to convert image to string or bad response from memapp")
             memapp_success = False
 
-    if db_success and memapp_success:
+    if db_success and memapp_success and s3_success:
         logging.info("Successfully uploaded the image to disk, database, and cache")
         return {"success": "true", "key": [request_key]}
     else:
@@ -401,13 +419,19 @@ def api_retrieval(key):
             logging.info("No image with this key in database. Invalid key!")
             return jsonify({"success": "false", "key": [key], "content": None})
         logging.info("Successfully found image in database")
-        image = aws_helper.download_fileobj(key)
+        bucket = image.value
+
+        response = requests.post(Config.S3_APP_URL + "download_image",
+                                 data={'key': key, 'bucket': bucket})
+        jsonResponse = response.json()
+        if jsonResponse['status_code'] != 200:
+            logging.info("FAIL!!! Could not return the image to cache - S3 failure")
+            return jsonify({"success": "false", "key": [key], "content": None})
+        b64string = jsonResponse['value']
         logging.info("Attempting to encode image to send as json...")
-        encoded_image = b64encode(image.read()).decode("ASCII")
-        logging.info("Successfully encoded image")
         success = 'true'
     logging.info("Successfully retrieved image")
-    return jsonify({"success": success, "key": [key], "content": encoded_image})
+    return jsonify({"success": success, "key": [key], "content": b64string})
 
 
 @frontend.route('/api/getRate/<string:rate>', methods=['GET', 'POST'])
@@ -460,7 +484,7 @@ def start_update():
             logging.info("Memapp successfully logging to database!")
             flash("Update Thread Started!")
         else:
-            logging.info("FAIL!!! Memapp could not start logging to the database...")        
+            logging.info("FAIL!!! Memapp could not start logging to the database...")
             flash("Update Thread Failed to Start, Please try again")
 
     return redirect('/')
