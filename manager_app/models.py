@@ -2,12 +2,12 @@ from memapp import db
 from datetime import datetime
 
 
-class MemcacheConfig(db.Model):
-
-
-    def __repr__(self):
-        return '<MemcacheData with ID: {0}>'.format(self.id)
-
+class PoolConfig(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    max_threshold = db.Column(db.Float)
+    min_threshold = db.Column(db.Float)
+    expand_ratio = db.Column(db.Float)
+    shrink_ratio = db.Column(db.Float)
 
 class BadExtensionException(Exception):
     """Raised when the image file being uploaded is not one of the valid extensions in Config.ALLOWED_EXTENSIONS"""

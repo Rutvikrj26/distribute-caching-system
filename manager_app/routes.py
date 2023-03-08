@@ -35,6 +35,25 @@ manager_app_data = {
 def home():
     return render_template('home.html', title="ECE1779 - Group 25 - Gauri Billore, Joseph Longpre, Rutvik Solanki")
 
+# Make a Manager Config Page that provides the options for configuring the pool
+# 1. Management Mode Page - Manual Mode/Automatic Mode Selection
+# 2. Information for Automatic Mode :
+#   Max Miss Rate threshold
+#   Min Miss Rate threshold
+#   Ratio by which to expand the pool
+#   Ratio by which to shrink the pool
+# 3. Delete all Application Data Button
+# 4. Clear cache Button
+
+# Make a Pool Monitor Page that provides the Folllowing :
+# 1. Pool Statistics
+#   miss rate,
+#   hit rate,
+#   number of items in cache,
+#   total size of items in cache,
+#   number of requests served per minute.
+# 2. Active Nodes & Aggregate information Charts for all the Pools.
+
 @manager_app.route("/get", methods=['GET', 'POST'])
 def get():
     logging.info("Making a GET call")

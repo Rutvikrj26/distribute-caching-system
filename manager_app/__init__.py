@@ -9,4 +9,4 @@ manager_app.config.from_object(Config)
 db = SQLAlchemy(manager_app)
 migrate = Migrate(manager_app, db)
 
-from manager_app import routes
+from manager_app import routes, models
