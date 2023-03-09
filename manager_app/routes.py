@@ -53,6 +53,7 @@ def home():
 # 3. Delete all Application Data Button
 # 4. Clear cache Button
 @manager_app.route("/config")
+@manager_app.route("/config", methods=['GET', 'POST'])
 def config():
     logging.info("Accessed MANAGER CONFIGURATION page")
     with manager_app.app_context():
@@ -74,16 +75,48 @@ def config():
             current_manager_config.expand_pool_ratio = form.expand_pool_ratio.data
             current_manager_config.shrink_pool_ratio = form.shrink_pool_ratio.data
             db.session.commit()
-        flash("Successfully updated the manager configuration!")
+        flash("Successfully updated the manager configuration in Database!")
 
-        # TODO : Update the Pool Statistics based on the Updated Pool Configuration.
+    if current_manager_config.management_mode:  # automatic mode
+        form.max_miss_rate_threshold.render_kw = {'disabled': False}
+        form.min_miss_rate_threshold.render_kw = {'disabled': False}
+        form.expand_pool_ratio.render_kw = {'disabled': False}
+        form.shrink_pool_ratio.render_kw = {'disabled': False}
+
+        # TODO : Engage Pool Autoscaler
 
         return redirect(url_for('config'))
+
+    else:  # manual mode
+        form.max_miss_rate_threshold.render_kw = {'disabled': True}
+        form.min_miss_rate_threshold.render_kw = {'disabled': True}
+        form.expand_pool_ratio.render_kw = {'disabled': True}
+        form.shrink_pool_ratio.render_kw = {'disabled': True}
+
+        if form.grow_pool.data:
+            if current_manager_config.current_pool_size < 8:
+                current_manager_config.current_pool_size += 1
+                db.session.commit()
+                flash(f"Successfully increased pool size to {current_manager_config.current_pool_size}")
+            else:
+                flash("Pool size already at maximum.")
+            return redirect(url_for('config'))
+
+        if form.shrink_pool.data:
+            if current_manager_config.current_pool_size > 1:
+                current_manager_config.current_pool_size -= 1
+                db.session.commit()
+                flash(f"Successfully decreased pool size to {current_manager_config.current_pool_size}")
+            else:
+                flash("Pool size already at minimum.")
+            return redirect(url_for('config'))
+
     return render_template(
         'config.html',
         title="ECE1779 - Group 25 - Configure the manager",
         form=form
     )
+
 
 
 
@@ -98,9 +131,9 @@ def config():
 @manager_app.route("/monitor")
 def monitor():
 
-
-
     return render_template('monitor.html')
+
+
 @manager_app.route("/get", methods=['GET', 'POST'])
 def get():
     logging.info("Making a GET call")

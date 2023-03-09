@@ -1,72 +1,90 @@
 {% extends "base.html" %}
 
 {% block content %}
-    <div class="container">
-        <h1>MemApp Manager</h1>
-        <hr>
-        <div class="row">
-            <div class="col-md-6">
-                <h2>Pool Configuration</h2>
-                <p>Current pool size: {{ pool_size }}</p>
-                <form method="POST" action="{{ url_for('configure_pool') }}">
-                    <div class="form-group">
-                        <label for="pool_size">Pool Size:</label>
-                        <input type="number" class="form-control" name="pool_size" id="pool_size" min="1" max="8" value="{{ pool_size }}" required>
-                    </div>
-                </form>
+<div class="row">
+    <div class="col-md-6">
+        <h2>Manager Configuration</h2>
+        <form method="POST" action="">
+            {{ form.csrf_token }}
+            <div class="form-group">
+                {{ form.management_mode.label }}
+                <div>
+                    {{ form.management_mode(class="form-control") }}
+                    {% if form.management_mode.errors %}
+                    <span class="text-danger">{{ form.management_mode.errors[0] }}</span>
+                    {% endif %}
+                </div>
             </div>
-            <div class="col-md-6">
-                <h2>Pool Resizing</h2>
-                <p>Current resizing mode: {{ resizing_mode }}</p>
-                {% if resizing_mode == 'manual' %}
-                    <p>Current pool size: {{ pool_size }}</p>
-                    <div class="btn-group" role="group">
-                        <form method="POST" action="{{ url_for('grow_pool') }}">
-                            <button type="submit" class="btn btn-success {% if pool_size == 8 %}disabled{% endif %}">Grow Pool</button>
-                        </form>
-                        <form method="POST" action="{{ url_for('shrink_pool') }}">
-                            <button type="submit" class="btn btn-danger {% if pool_size == 1 %}disabled{% endif %}">Shrink Pool</button>
-                        </form>
-                    </div>
-                {% else %}
-                    <p>Max Miss Rate threshold: {{ max_miss_rate }}</p>
-                    <p>Min Miss Rate threshold: {{ min_miss_rate }}</p>
-                    <p>Expand Ratio: {{ expand_ratio }}</p>
-                    <p>Shrink Ratio: {{ shrink_ratio }}</p>
-                    <form method="POST" action="{{ url_for('configure_autoscaler') }}">
-                        <div class="form-group">
-                            <label for="max_miss_rate">Max Miss Rate Threshold:</label>
-                            <input type="number" class="form-control" name="max_miss_rate" id="max_miss_rate" min="0" step="0.01" value="{{ max_miss_rate }}" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="min_miss_rate">Min Miss Rate Threshold:</label>
-                            <input type="number" class="form-control" name="min_miss_rate" id="min_miss_rate" min="0" step="0.01" value="{{ min_miss_rate }}" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="expand_ratio">Expand Ratio:</label>
-                            <input type="number" class="form-control" name="expand_ratio" id="expand_ratio" min="1" step="0.01" value="{{ expand_ratio }}" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="shrink_ratio">Shrink Ratio:</label>
-                            <input type="number" class="form-control" name="shrink_ratio" id="shrink_ratio" min="1" step="0.01" value="{{ shrink_ratio }}" required>
-                        </div>
-                    </form>
-            </div>
-            <div class="col-md-6">
-                <h2>Delete Application Data</h2>
-                <p>Click the button below to delete all image data stored in RDS and S3, and clear the content of all memcache nodes in the pool.</p>
-                <form method="POST" action="{{ url_for('delete_app_data') }}">
-                    <button type="submit" class="btn btn-danger">Delete Application Data</button>
-                </form>
-            </div>
-            <div class="col-md-6">
-                <h2>Clear MemCache Data</h2>
-                <p>Click the button below to clear the content of all memcache nodes in the pool.</p>
-                <form method="POST" action="{{ url_for('clear_memcache_data') }}">
-                    <button type="submit" class="btn btn-danger">Clear MemCache Data</button>
-                </form>
-            </div>
-        </div>
-    </div>
 
+            {% if form.management_mode.data == "Automatic Mode" %}
+            <div class="form-group">
+                {{ form.max_miss_rate_threshold.label }}
+                <div>
+                    {{ form.max_miss_rate_threshold(class="form-control") }}
+                    {% if form.max_miss_rate_threshold.errors %}
+                    <span class="text-danger">{{ form.max_miss_rate_threshold.errors[0] }}</span>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="form-group">
+                {{ form.min_miss_rate_threshold.label }}
+                <div>
+                    {{ form.min_miss_rate_threshold(class="form-control") }}
+                    {% if form.min_miss_rate_threshold.errors %}
+                    <span class="text-danger">{{ form.min_miss_rate_threshold.errors[0] }}</span>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="form-group">
+                {{ form.expand_pool_ratio.label }}
+                <div>
+                    {{ form.expand_pool_ratio(class="form-control") }}
+                    {% if form.expand_pool_ratio.errors %}
+                    <span class="text-danger">{{ form.expand_pool_ratio.errors[0] }}</span>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="form-group">
+                {{ form.shrink_pool_ratio.label }}
+                <div>
+                    {{ form.shrink_pool_ratio(class="form-control") }}
+                    {% if form.shrink_pool_ratio.errors %}
+                    <span class="text-danger">{{ form.shrink_pool_ratio.errors[0] }}</span>
+                    {% endif %}
+                </div>
+            </div>
+            {% else %}
+            <div class="form-group">
+                <label>Manual Mode Controls:</label>
+                <div class="btn-group" role="group">
+                    <button type="submit" name="grow_pool" value="1" class="btn btn-outline-success" {% if form.pool_size.data >= 8 %}disabled{% endif %}>Grow</button>
+                    <button type="submit" name="shrink_pool" value="1" class="btn btn-outline-danger" {% if form.pool_size.data <= 1 %}disabled{% endif %}>Shrink</button>
+                </div>
+                <br><br>
+                <label>Current Pool Size:</label> {{ form.pool_size.data }}
+            </div>
+            {% endif %}
+
+            <div class="form-group">
+                <button type="submit" class="btn btn-primary">Update Configuration</button>
+                <a href="{{ url_for('delete_app_data') }}" class="btn btn-danger">Delete Application Data</a>
+                <a href="{{ url_for('clear_cache') }}" class="btn btn-secondary">Clear Cache</a>
+            </div>
+
+            {% with messages = get_flashed_messages() %}
+            {% if messages %}
+            <ul class=flashes>
+                {% for message in messages %}
+                <li>{{ message }}</li>
+                {% endfor %}
+            </ul>
+            {% endif %}
+            {% endwith %}
+
+        </form>
+    </div>
+</div>
 {% endblock %}
