@@ -6,8 +6,12 @@ import threading
 from config import Config
 from frontend import frontend
 from frontend.models import MemcacheConfig
-from manager_app import manager_app
-from flask import jsonify, request, render_template
+from manager_app import manager_app, db
+from manager_app.models import ManagerConfig
+from flask import jsonify, request, render_template, flash, redirect, url_for
+
+from manager_app.forms import ManagerConfigForm
+from manager_app.models import ManagerConfig
 
 memapp_urls = [
     Config.MEMAPP_0_URL,
@@ -48,6 +52,40 @@ def home():
 #   Ratio by which to shrink the pool
 # 3. Delete all Application Data Button
 # 4. Clear cache Button
+@manager_app.route("/config")
+def config():
+    logging.info("Accessed MANAGER CONFIGURATION page")
+    with manager_app.app_context():
+        current_manager_config = ManagerConfig.query.first()
+        logging.info(f"Management Mode = {current_manager_config.management_mode}")
+    form = ManagerConfigForm(
+        management_mode=current_manager_config.management_mode,
+        max_miss_rate_threshold=current_manager_config.max_miss_rate_threshold,
+        min_miss_rate_threshold=current_manager_config.min_miss_rate_threshold,
+        expand_pool_ratio=current_manager_config.expand_pool_ratio,
+        shrink_pool_ratio=current_manager_config.shrink_pool_ratio
+    )
+    if form.validate_on_submit():
+        with manager_app.app_context():
+            current_manager_config = ManagerConfig.query.first()
+            current_manager_config.management_mode = form.management_mode.data
+            current_manager_config.max_miss_rate_threshold = form.max_miss_rate_threshold.data
+            current_manager_config.min_miss_rate_threshold = form.min_miss_rate_threshold.data
+            current_manager_config.expand_pool_ratio = form.expand_pool_ratio.data
+            current_manager_config.shrink_pool_ratio = form.shrink_pool_ratio.data
+            db.session.commit()
+        flash("Successfully updated the manager configuration!")
+
+        # TODO : Update the Pool Statistics based on the Updated Pool Configuration.
+
+        return redirect(url_for('config'))
+    return render_template(
+        'config.html',
+        title="ECE1779 - Group 25 - Configure the manager",
+        form=form
+    )
+
+
 
 # Make a Pool Monitor Page that provides the Folllowing :
 # 1. Pool Statistics
@@ -57,7 +95,12 @@ def home():
 #   total size of items in cache,
 #   number of requests served per minute.
 # 2. Active Nodes & Aggregate information Charts for all the Pools.
+@manager_app.route("/monitor")
+def monitor():
 
+
+
+    return render_template('monitor.html')
 @manager_app.route("/get", methods=['GET', 'POST'])
 def get():
     logging.info("Making a GET call")
