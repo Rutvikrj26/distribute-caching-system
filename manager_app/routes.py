@@ -1,8 +1,6 @@
-import time
 import requests
 import logging
 import hashlib
-import threading
 from config import Config
 from frontend import frontend
 from frontend.models import MemcacheConfig
@@ -26,15 +24,6 @@ memapp_urls = [
 
 manager_app_data = {
     "num_active_nodes": 1,
-    "monitoring": False,
-    "hit_rate": 1.0,
-    "miss_rate": 0.0,
-    "last_miss_rate": 0.0,
-    "expand_threshold": 0.8,
-    "shrink_threshold": 0.2,
-    "expand_multiplier": 2.0,
-    "shrink_multiplier": 0.5,
-    "automatic": 1,
     "isRandom": 1,
     "maxSize": 2
 }
@@ -134,6 +123,7 @@ def monitor():
     return render_template('monitor.html')
 
 
+
 @manager_app.route("/get", methods=['GET', 'POST'])
 def get():
     logging.info("Making a GET call")
@@ -141,7 +131,7 @@ def get():
     logging.info(f"Key received = {key}")
     hashed_key = hashlib.md5(key.encode()).hexdigest().upper()
     num_active_nodes = manager_app_data["num_active_nodes"]
-    node_index = int(hashed_key[0], num_active_nodes) % num_active_nodes
+    node_index = int(hashed_key[0], 16) % num_active_nodes
     logging.info(f"Querying memory node at node_index = {node_index}")
     response = requests.post(memapp_urls[node_index]+"/get", data={'key': key})
     jsonResponse = response.json()
@@ -165,7 +155,7 @@ def put():
     if key is not None and value is not None:
         hashed_key = hashlib.md5(key.encode()).hexdigest().upper()
         num_active_nodes = manager_app_data["num_active_nodes"]
-        node_index = int(hashed_key[0], num_active_nodes) % num_active_nodes
+        node_index = int(hashed_key[0], 16) % num_active_nodes
         logging.info(f"Sending key and value to node at index = {node_index}")
         response = requests.post(memapp_urls[node_index] + "/put", data={'key': key, 'value': value})
         jsonResponse = response.json()
@@ -189,7 +179,7 @@ def invalidate_key():
     key = request.form['key']
     hashed_key = hashlib.md5(key.encode()).hexdigest().upper()
     num_active_nodes = manager_app_data["num_active_nodes"]
-    node_index = int(hashed_key[0], num_active_nodes) % num_active_nodes
+    node_index = int(hashed_key[0], 16) % num_active_nodes
     logging.info(f"Invalidating key at node: {node_index}")
     response = requests.post(memapp_urls[node_index] + "/invalidate_key", data={'key': key})
     jsonResponse = response.json()
@@ -250,108 +240,7 @@ def update_statistics():
     pass
 
 
-@manager_app.route('/update_db', methods=['POST'])
-def update():
-    logging.info("Request received for manager_app to query Cloudwatch for automated cache changes...")
-    thread = threading.Thread(target=monitor_hit_and_miss_rates)
-    if manager_app_data["monitoring"]:
-        logging.info("The manager_app is already monitoring Cloudwatch!")
-        return jsonify({"status": "fail", "status_code": 400})
-    thread.start()
-    manager_app_data["monitoring"] = True
-    logging.info("Monitoring thread for Cloudwatch in manager_app started successfully...")
-    return jsonify({"status": "success", "status_code": 200})
-
-
 @manager_app.route("/getNumNodes", methods=['GET', 'POST'])
 def get_num_nodes():
     numNodes = manager_app_data['num_active_nodes']
     return jsonify({"status": "success", "status_code": 200, "numNodes": numNodes})
-
-
-def monitor_hit_and_miss_rates():
-    while True:
-        logging.info("Starting 5 second sleep timer...")
-        logging.info(f"Miss rate = {manager_app_data['miss_rate']}, hit_rate = {manager_app_data['hit_rate']}, last_miss_rate = {manager_app_data['last_miss_rate']}")
-        time.sleep(5)
-
-        # TODO: Get hit_rate and miss_rate metrics from Cloudwatch... dummy values below
-        miss_rate = 0.5
-        hit_rate = 0.5
-
-        manager_app_data['last_miss_rate'] = manager_app_data['miss_rate']
-        manager_app_data['miss_rate'] = miss_rate
-        manager_app_data['hit_rate'] = hit_rate
-
-        if manager_app_data['automatic'] == 1:
-            if miss_rate > manager_app_data['expand_threshold'] and miss_rate > manager_app_data['last_miss_rate']:
-                if manager_app_data['num_active_nodes'] < Config.MAX_NODES:
-                    expand_node_pool()
-            elif miss_rate < manager_app_data['shrink_threshold'] and miss_rate < manager_app_data['last_miss_rate']:
-                if manager_app_data['num_active_nodes'] > 1:
-                    shrink_node_pool()
-
-
-def expand_node_pool(manual=False):
-    # First we call back all key/value pairs to be redistributed
-    key_value_dict = get_all_key_value_pairs_from_nodes()
-    # Next grow node pool according to multiplier
-    if manual:
-        manager_app_data['num_active_nodes'] += 1
-    else:
-        manager_app_data['num_active_nodes'] = min(int(manager_app_data['num_active_nodes'] * manager_app_data['expand_multiplier']), Config.MAX_NODES)
-    # Write back keys to smaller node pool
-    for key in key_value_dict.keys():
-        value = key_value_dict[key]
-        hashed_key = hashlib.md5(key.encode()).hexdigest().upper()
-        num_active_nodes = manager_app_data["num_active_nodes"]
-        node_index = int(hashed_key[0], num_active_nodes) % num_active_nodes
-        logging.info(f"Sending key and value to node at index = {node_index}")
-        response = requests.post(memapp_urls[node_index] + "/put", data={'key': key, 'value': value})
-        jsonResponse = response.json()
-        if jsonResponse["status_code"] == 200:
-            logging.info(f"Successfully stored value with key = {key} in cache node at index = {node_index}")
-        elif jsonResponse["status"] == "too_big":
-            logging.info(f"Value with key = {key} too big for node at index = {node_index}")
-        else:
-            logging.info("FAIL!!! Received non-200 response from cache node")
-
-
-def shrink_node_pool(manual=False):
-    # First we call back all key/value pairs to be redistributed
-    key_value_dict = get_all_key_value_pairs_from_nodes()
-    # Next shrink node pool according to multiplier
-    if manual:
-        manager_app_data['num_active_nodes'] -= 1
-    else:
-        manager_app_data['num_active_nodes'] = max(int(manager_app_data['num_active_nodes'] * manager_app_data['shrink_multiplier']), 1)
-    # Write back keys to smaller node pool
-    for key in key_value_dict.keys():
-        value = key_value_dict[key]
-        hashed_key = hashlib.md5(key.encode()).hexdigest().upper()
-        num_active_nodes = manager_app_data["num_active_nodes"]
-        node_index = int(hashed_key[0], num_active_nodes) % num_active_nodes
-        logging.info(f"Sending key and value to node at index = {node_index}")
-        response = requests.post(memapp_urls[node_index] + "/put", data={'key': key, 'value': value})
-        jsonResponse = response.json()
-        if jsonResponse["status_code"] == 200:
-            logging.info(f"Successfully stored value with key = {key} in cache node at index = {node_index}")
-        elif jsonResponse["status"] == "too_big":
-            logging.info(f"Value with key = {key} too big for node at index = {node_index}")
-        else:
-            logging.info("FAIL!!! Received non-200 response from cache node")
-
-
-def get_all_key_value_pairs_from_nodes():
-    key_value_dict = {}
-    for i in range(0, manager_app_data['num_active_nodes']):
-        logging.info(f"Getting key/value pairs from cache node {i}")
-        # TODO: Need to write this function in memapp/routes.py
-        response = requests.post(memapp_urls[i] + "/return_values_and_clear")
-        jsonResponse = response.json()
-        if jsonResponse['status_code'] == 200:
-            logging.info(f"Received key/value pairs from cache node {i}")
-            node_dict = jsonResponse['value']
-            key_value_dict.update(node_dict)
-    logging.info(f"Received all key/value pairs from active cache nodes...")
-    return key_value_dict

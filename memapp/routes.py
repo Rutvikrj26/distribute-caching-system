@@ -114,35 +114,35 @@ def clearcache():
     return jsonify({"status": "success", "status_code": 200})
 
 
-def commit_update():
-    while True:
-        logging.info("Starting 5 second sleep timer...")
-        logging.info(f"isRandom = {memcache_data['isRandom']}, max_size = {memcache_data['max_size']}")
-        time.sleep(5)
-
-        # First update memcache data
-        with memapp.app_context():
-            logging.info("Logging data to database...")
-            memcache_data["timestamp"] = datetime.utcnow()
-            new_entry = MemcacheData(timestamp=memcache_data['timestamp'], hits=memcache_data['hits'],
-                                     misses=memcache_data['misses'], posts_served=memcache_data['posts_served'],
-                                     num_items=len(memcache), current_size=memcache_data["cache_size"])
-            session.add(new_entry)
-            session.commit()
-            logging.info("UPDATE: refreshed database with new memcache data")
-
-
-@memapp.route('/update_db', methods=['POST'])
-def update():
-    logging.info("Request received to start logging to database...")
-    thread = threading.Thread(target=commit_update)
-    if memcache_data["commits_running"]:
-        logging.info("Commit thread already running!")
-        return jsonify({"status": "fail", "status_code": 400})
-    thread.start()
-    memcache_data["commits_running"] = True
-    logging.info("Logging thread started successfully...")
-    return jsonify({"status": "success", "status_code": 200})
+# def commit_update():
+#     while True:
+#         logging.info("Starting 5 second sleep timer...")
+#         logging.info(f"isRandom = {memcache_data['isRandom']}, max_size = {memcache_data['max_size']}")
+#         time.sleep(5)
+#
+#         # First update memcache data
+#         with memapp.app_context():
+#             logging.info("Logging data to database...")
+#             memcache_data["timestamp"] = datetime.utcnow()
+#             new_entry = MemcacheData(timestamp=memcache_data['timestamp'], hits=memcache_data['hits'],
+#                                      misses=memcache_data['misses'], posts_served=memcache_data['posts_served'],
+#                                      num_items=len(memcache), current_size=memcache_data["cache_size"])
+#             session.add(new_entry)
+#             session.commit()
+#             logging.info("UPDATE: refreshed database with new memcache data")
+#
+#
+# @memapp.route('/update_db', methods=['POST'])
+# def update():
+#     logging.info("Request received to start logging to database...")
+#     thread = threading.Thread(target=commit_update)
+#     if memcache_data["commits_running"]:
+#         logging.info("Commit thread already running!")
+#         return jsonify({"status": "fail", "status_code": 400})
+#     thread.start()
+#     memcache_data["commits_running"] = True
+#     logging.info("Logging thread started successfully...")
+#     return jsonify({"status": "success", "status_code": 200})
 
 
 # Refresh Configuration by querying it from the database
@@ -162,3 +162,9 @@ def refresh_configuration():
             memcache_data["cache_size"] = policy.lru_resize(memcache, memcache_data["cache_size"], memcache_data["max_size"])
 
     return jsonify({"status": "success", "status_code": 200})
+
+
+@memapp.route('/return_values', methods=['GET', 'POST'])
+def return_values_and_clear():
+    logging.info("Sending all key/value pairs to autoscaler...")
+    return jsonify({"status": "success", "value": memcache, "status_code": 200})
