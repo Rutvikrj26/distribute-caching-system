@@ -85,6 +85,7 @@ def config():
         if form.grow_pool.data:
             if current_manager_config.current_pool_size < 8:
                 current_manager_config.current_pool_size += 1
+                # TODO : Increase Pool Call Here
                 db.session.commit()
                 flash(f"Successfully increased pool size to {current_manager_config.current_pool_size}")
             else:
@@ -94,6 +95,7 @@ def config():
         if form.shrink_pool.data:
             if current_manager_config.current_pool_size > 1:
                 current_manager_config.current_pool_size -= 1
+                # TODO : Decrease Pool Call Here
                 db.session.commit()
                 flash(f"Successfully decreased pool size to {current_manager_config.current_pool_size}")
             else:
@@ -111,16 +113,49 @@ def config():
 
 # Make a Pool Monitor Page that provides the Folllowing :
 # 1. Pool Statistics
-#   miss rate,
-#   hit rate,
-#   number of items in cache,
-#   total size of items in cache,
-#   number of requests served per minute.
-# 2. Active Nodes & Aggregate information Charts for all the Pools.
+#   miss rate : to be pulled from Cloudwatch
+#   hit rate : to be pulled from Cloudwatch
+#   number of items in cache : To be stored locally in a counter
+#   total size of items in cache : To be stored locally in a counter
+#   number of requests served per minute : To be pulled from Cloudwtch
+#
 @manager_app.route("/monitor")
 def monitor():
+    from flask import Flask, render_template
+    import boto3
+    import json
 
-    return render_template('monitor.html')
+    app = Flask(__name__)
+
+    @app.route('/monitor')
+    def monitor():
+        # Connect to the CloudWatch client
+        cloudwatch = boto3.client('cloudwatch')
+
+        # Retrieve the metrics data for the last 30 minutes at 1-minute granularity
+        # TODO : Write the code for Metric Calls
+        response = cloudwatch.get_metric_data(
+            MetricDataQueries=[]
+        )
+
+        # Extract the data for each metric
+
+        # Create the data for the circular chart by fetching the required data from database
+        active_nodes = 6 # Set-Up the DB Query
+        inactive_nodes = 2 # Set-Up the DB Query
+        active_nodes_data = [1] * active_nodes + [0] * inactive_nodes
+        active_nodes_labels = ['Active Node ' + str(i + 1) for i in range(active_nodes)] + [
+            'Inactive Node ' + str(i + 1) for i in range(inactive_nodes)]
+
+        # Render the template with the data
+        return render_template('monitor.html',
+                               active_nodes_data=json.dumps(active_nodes_data),
+                               active_nodes_labels=json.dumps(active_nodes_labels),
+                               miss_rate_data=json.dumps(),
+                               hit_rate_data=json.dumps(),
+                               num_items_data=json.dumps(),
+                               size_items_data=json.dumps(),
+                               num_requests_data=json.dumps())
 
 
 
