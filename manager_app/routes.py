@@ -141,16 +141,16 @@ def monitor():
         # Extract the data for each metric
 
         # Create the data for the circular chart by fetching the required data from database
-        active_nodes = 6 # Set-Up the DB Query
-        inactive_nodes = 2 # Set-Up the DB Query
-        active_nodes_data = [1] * active_nodes + [0] * inactive_nodes
-        active_nodes_labels = ['Active Node ' + str(i + 1) for i in range(active_nodes)] + [
-            'Inactive Node ' + str(i + 1) for i in range(inactive_nodes)]
+        # active_nodes = 6 # Set-Up the DB Query
+        # inactive_nodes = 2 # Set-Up the DB Query
+        # active_nodes_data = [1] * active_nodes + [0] * inactive_nodes
+        # active_nodes_labels = ['Active Node ' + str(i + 1) for i in range(active_nodes)] + [
+        #     'Inactive Node ' + str(i + 1) for i in range(inactive_nodes)]
 
         # Render the template with the data
         return render_template('monitor.html',
-                               active_nodes_data=json.dumps(active_nodes_data),
-                               active_nodes_labels=json.dumps(active_nodes_labels),
+                               active_nodes_data=json.dumps(),
+                               active_nodes_labels=json.dumps(),
                                miss_rate_data=json.dumps(),
                                hit_rate_data=json.dumps(),
                                num_items_data=json.dumps(),
