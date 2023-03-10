@@ -31,13 +31,30 @@
   var size_items_data = {{ size_items_data|safe }};
   var num_requests_data = {{ num_requests_data|safe }};
 
+
+// Helper function to generate a random color
+function getRandomColor() {
+  var letters = '0123456789ABCDEF';
+  var color = '#';
+  for (var i = 0; i < 6; i++) {
+    color += letters[Math.floor(Math.random() * 16)];
+  }
+  return color;
+}
+
+// Generate an array of random background colors for the active nodes
+var backgroundColors = [];
+for (var i = 0; i < numActiveNodes; i++) {
+  backgroundColors.push(getRandomColor());
+}
+
   // Create the circular chart for active nodes
   var nodesChart = new Chart('nodes-chart', {
     type: 'doughnut',
     data: {
       datasets: [{
         data: active_nodes_data,
-        backgroundColor: ['#36A2EB', '#FF6384']
+        backgroundColor: backgroundColors
       }],
       labels: active_nodes_labels
     }
