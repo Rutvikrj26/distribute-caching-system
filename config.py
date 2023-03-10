@@ -30,3 +30,11 @@ class Config(object):
     MEMAPP_5_URL = "http://127.0.0.1:5009/"
     MEMAPP_6_URL = "http://127.0.0.1:5010/"
     MEMAPP_7_URL = "http://127.0.0.1:5011/"
+
+    # Cloudwatch metrics - use these, so we don't accidentally make doubles that cost $$$
+    misses = "misses"
+    hits = "hits"
+    num_items_in_cache = "num_items_in_cache"
+    size_items_in_Megabytes = "size_items_in_Megabytes"
+    num_active_nodes = "num_active_nodes"
+    num_posts_served = "num_posts_served"

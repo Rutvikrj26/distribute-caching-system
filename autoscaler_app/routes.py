@@ -66,10 +66,13 @@ def monitor_hit_and_miss_rates():
         logging.info(f"Miss rate = {autoscaler_app_data['miss_rate']}, hit_rate = {autoscaler_app_data['hit_rate']}, last_miss_rate = {autoscaler_app_data['last_miss_rate']}")
         time.sleep(60)
 
-        # TODO: Get hit_rate and miss_rate metrics from Cloudwatch... dummy values below
+        # Get hits and misses from Cloudwatch
         hits, misses = aws_helper.get_hits_and_misses_from_cloudwatch()
         miss_rate = float(misses / (hits + misses))
         hit_rate = float(hits / (hits + misses))
+
+        # While we're threading, put num_active_nodes to Cloudwatch
+        aws_helper.put_data_to_cloudwatch(Config.num_active_nodes, autoscaler_app_data['num_active_nodes'], unit=None)
 
         autoscaler_app_data['last_miss_rate'] = autoscaler_app_data['miss_rate']
         autoscaler_app_data['miss_rate'] = miss_rate
@@ -87,11 +90,17 @@ def monitor_hit_and_miss_rates():
 def expand_node_pool(manual=False):
     # First we call back all key/value pairs to be redistributed
     key_value_dict = get_all_key_value_pairs_from_nodes()
+    old_active_nodes = autoscaler_app_data['num_active_nodes']
     # Next grow node pool according to multiplier
     if manual:
         autoscaler_app_data['num_active_nodes'] += 1
     else:
         autoscaler_app_data['num_active_nodes'] = min(int(autoscaler_app_data['num_active_nodes'] * autoscaler_app_data['expand_multiplier']), Config.MAX_NODES)
+    new_active_nodes = autoscaler_app_data['num_active_nodes']
+
+    # Send num_active_node update to frontend
+    requests.post(Config.FRONTEND_URL + "update_num_active_nodes", data={'old_active_nodes': old_active_nodes, 'new_active_nodes': new_active_nodes})
+
     # Write back keys to bigger node pool
     for key in key_value_dict.keys():
         value = key_value_dict[key]
@@ -112,11 +121,18 @@ def expand_node_pool(manual=False):
 def shrink_node_pool(manual=False):
     # First we call back all key/value pairs to be redistributed
     key_value_dict = get_all_key_value_pairs_from_nodes()
+    old_active_nodes = autoscaler_app_data['num_active_nodes']
     # Next shrink node pool according to multiplier
     if manual:
         autoscaler_app_data['num_active_nodes'] -= 1
     else:
         autoscaler_app_data['num_active_nodes'] = max(int(autoscaler_app_data['num_active_nodes'] * autoscaler_app_data['shrink_multiplier']), 1)
+    new_active_nodes = autoscaler_app_data['num_active_nodes']
+
+    # Send num_active_node update to frontend
+    requests.post(Config.FRONTEND_URL + "update_num_active_nodes",
+                  data={'old_active_nodes': old_active_nodes, 'new_active_nodes': new_active_nodes})
+
     # Write back keys to smaller node pool
     for key in key_value_dict.keys():
         value = key_value_dict[key]

@@ -79,11 +79,11 @@ def get_hits_and_misses_from_cloudwatch(period_in_minutes=1):
         response = cloudwatch.get_metric_data(
             MetricDataQueries=[
                 {
-                    'Id': 'HIT',
+                    'Id': Config.hits,
                     'MetricStat': {
                         'Metric': {
                             'Namespace': 'SITE/TRAFFIC',
-                            'MetricName': 'hit_rate'
+                            'MetricName': Config.hits
                         },
                         'Period': 60,
                         'Stat': 'Sum'
@@ -92,11 +92,11 @@ def get_hits_and_misses_from_cloudwatch(period_in_minutes=1):
                     'Period': period_in_seconds
                 },
                 {
-                    'Id': 'MISS',
+                    'Id': Config.misses,
                     'MetricStat': {
                         'Metric': {
                             'Namespace': 'SITE/TRAFFIC',
-                            'MetricName': 'miss_rate'
+                            'MetricName': Config.misses
                         },
                         'Period': 60,
                         'Stat': 'Sum'
@@ -119,7 +119,7 @@ def get_hits_and_misses_from_cloudwatch(period_in_minutes=1):
         logging.info("ERROR! Could not get or parse data from Cloudwatch response...")
         return None, None
 
-    if metric_0_name == "HIT":
+    if metric_0_name == Config.hits:
         hits = metric_0_value
         misses = metric_1_value
     else:
@@ -131,7 +131,7 @@ def get_hits_and_misses_from_cloudwatch(period_in_minutes=1):
 
 
 @mock_cloudwatch
-def put_data_to_cloudwatch(metric_name, value):
+def put_data_to_cloudwatch(metric_name, value, unit=None):
     try:
         logging.info(f"Putting {metric_name} data with value {value} to Cloudwatch...")
         cloudwatch = boto3.client('cloudwatch')
@@ -140,7 +140,7 @@ def put_data_to_cloudwatch(metric_name, value):
             MetricData=[
                 {
                     'MetricName': metric_name,
-                    'Unit': None,
+                    'Unit': unit,
                     'Value': value
                 }
             ]

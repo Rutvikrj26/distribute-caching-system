@@ -13,13 +13,20 @@ from frontend.forms import SubmitButton, UploadForm, DisplayForm, MemcacheConfig
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
-global commits_running
-commits_running = False
+frontend_data = {
+    "update_active_nodes": False,
+    "old_active_nodes": 1,
+    "new_active_nodes": 1,
+    "commits_running": False
+}
 
 
 @frontend.route('/')
 @frontend.route('/index')
 def index():
+    if frontend_data['update_active_nodes']:
+        frontend_data['update_active_nodes'] = False
+        flash(f'SIZE OF CACHE POOL HAS CHANGED: from {frontend_data["old_active_nodes"]} to {frontend_data["new_active_nodes"]}')
     return render_template('index.html', title="ECE1779 - Group 25 - Gauri Billore, Joseph Longpre, Rutvik Solanki")
 
 
@@ -84,6 +91,9 @@ def upload():
         flash("Image successfully uploaded!")
         return redirect(url_for('upload'))
 
+    if frontend_data['update_active_nodes']:
+        frontend_data['update_active_nodes'] = False
+        flash(f'SIZE OF CACHE POOL HAS CHANGED: from {frontend_data["old_active_nodes"]} to {frontend_data["new_active_nodes"]}')
     return render_template('upload.html', title="ECE1779 - Group 25 - Upload a Key-Value Pair", form=form)
 
 
@@ -138,8 +148,15 @@ def display():
 
         # Now show image to user
         flash(f"Showing image for key = {key}")
+        if frontend_data['update_active_nodes']:
+            frontend_data['update_active_nodes'] = False
+            flash(f'SIZE OF CACHE POOL HAS CHANGED: from {frontend_data["old_active_nodes"]} to {frontend_data["new_active_nodes"]}')
         return render_template('display.html', title="ECE1779 - Group 25 - Display an Image", form=form,
                                image_location=image_location)
+
+    if frontend_data['update_active_nodes']:
+        frontend_data['update_active_nodes'] = False
+        flash(f'SIZE OF CACHE POOL HAS CHANGED: from {frontend_data["old_active_nodes"]} to {frontend_data["new_active_nodes"]}')
     return render_template('display.html', title="ECE1779 - Group 25 - Display an Image",
                            form=form, image_location=None)
 
@@ -183,11 +200,16 @@ def show_delete_keys():
         logging.info("Successfully deleted key/image pairs from database, disk, and cache")
         flash("All keys successfully deleted from cache, database, and disk.")
         return redirect(url_for('show_delete_keys'))
+
+    if frontend_data['update_active_nodes']:
+        frontend_data['update_active_nodes'] = False
+        flash(f'SIZE OF CACHE POOL HAS CHANGED: from {frontend_data["old_active_nodes"]} to {frontend_data["new_active_nodes"]}')
     return render_template('show_delete_keys.html', title="ECE1779 - Group 25 - Show and Delete All Keys",
                            form=form, images=images)
 
 
 @frontend.route('/memcache_config', methods=['GET', 'POST'])
+# TODO: I think this gets deleted and replaced with the UI from manager_app??
 def memcache_config():
     logging.info("Accessed MEMCACHE CONFIGURATION page")
     response = requests.post(Config.MANAGER_APP_URL + 'get_all_keys')
@@ -221,11 +243,15 @@ def memcache_config():
                 logging.info("FAIL!!! Could not delete from memcache")
                 flash("ERROR: Could not delete all key/value pairs from cache")
         return redirect(url_for('memcache_config'))
+
+    if frontend_data['update_active_nodes']:
+        frontend_data['update_active_nodes'] = False
+        flash(f'SIZE OF CACHE POOL HAS CHANGED: from {frontend_data["old_active_nodes"]} to {frontend_data["new_active_nodes"]}')
     return render_template('memcache_config.html', title="ECE1779 - Group 25 - Configure the memcache", form=form,
                            keys=keys)
 
 
-# TODO: Last page that needs updating
+# TODO: I think this gets deleted and replaced with the UI from manager_app??
 @frontend.route('/memcache_stats', methods=['GET'])
 def memcache_stats():
     logging.info("Accessed MEMCACHE STATISTICS page")
@@ -256,6 +282,9 @@ def memcache_stats():
         hit_rate_val = [(0 if (row.hits + row.misses == 0) else (row.hits * 100 / (row.hits + row.misses))) for row in
                         graphing_data]
 
+    if frontend_data['update_active_nodes']:
+        frontend_data['update_active_nodes'] = False
+        flash(f'SIZE OF CACHE POOL HAS CHANGED: from {frontend_data["old_active_nodes"]} to {frontend_data["new_active_nodes"]}')
     return render_template('memcache_stats.html', title="ECE1779 - Group 25 - View memcache Statistics",
                            max_size=max_size, num_items=num_items, current_size=current_size, gets_served=gets_served,
                            posts_served=posts_served, miss_rate=miss_rate, hit_rate=hit_rate,
@@ -263,6 +292,33 @@ def memcache_stats():
                            miss_rate_val=miss_rate_val, posts_served_val=posts_served_val,
                            gets_served_val=gets_served_val,
                            num_items_val=num_items_val, current_size_val=current_size_val)
+
+
+# adding a Logging start Button
+@frontend.route('/start_update', methods=['GET', 'POST'])
+def start_update():
+    if frontend_data["commits_running"]:
+        flash("Update Thread Already Running!")
+    else:
+        # Tell memapp to start logging data every 5 seconds
+        logging.info("Asking memcache to start logging data...")
+        response = requests.post(Config.MANAGER_APP_URL + "update_db")
+        if response.status_code == 200:
+            logging.info("Memapp successfully logging to database!")
+            flash("Update Thread Started!")
+            frontend_data["commits_running"] = True
+        else:
+            logging.info("FAIL!!! Memapp could not start logging to the database...")
+            flash("Update Thread Failed to Start, Please try again")
+
+    return redirect('/')
+
+
+@frontend.route('/update_num_active_nodes', methods=['GET', 'POST'])
+def update_num_active_nodes():
+    frontend_data['old_active_nodes'] = int(request.form["old_active_nodes"])
+    frontend_data['new_active_nodes'] = int(request.form["new_active_nodes"])
+    frontend_data['update_active_nodes'] = True
 
 
 #####################################
@@ -454,6 +510,10 @@ def api_configure_cache():
     num_nodes = request.form["numNodes"]
     cache_size = request.form["cacheSize"]
     policy = request.form["policy"]  # Either RR = random replacement or LRU = least recently used
+    expand_multiplier = request.form["expRatio"]
+    shrink_multiplier = request.form["shrinkRatio"]
+    expand_threshold = request.form["maxMiss"]
+    shrink_threshold = request.form["minMiss"]
     # TODO: Fill out the rest of this API call
 
 
@@ -469,22 +529,3 @@ def get_num_nodes():
         numNodes = None
         success = "false"
     return jsonify({"success": success, "numNodes": numNodes})
-
-
-# adding a Logging start Button 
-@frontend.route('/start_update', methods=['GET', 'POST'])
-def start_update():
-    if commits_running:
-        flash("Update Thread Already Running!")
-    else:
-        # Tell memapp to start logging data every 5 seconds
-        logging.info("Asking memcache to start logging data...")
-        response = requests.post(Config.MANAGER_APP_URL + "update_db")
-        if response.status_code == 200:
-            logging.info("Memapp successfully logging to database!")
-            flash("Update Thread Started!")
-        else:
-            logging.info("FAIL!!! Memapp could not start logging to the database...")
-            flash("Update Thread Failed to Start, Please try again")
-
-    return redirect('/')

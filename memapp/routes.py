@@ -1,5 +1,5 @@
 import sys
-
+import aws_helper
 from memapp import memapp, memcache, policy
 from flask import jsonify, request
 import threading
@@ -24,7 +24,6 @@ session = Session()
 
 # Local Memcache Stats Data
 memcache_data = {
-    "timestamp": None,
     "hits": 0,
     "misses": 0,
     "posts_served": 0,
@@ -32,6 +31,14 @@ memcache_data = {
     "isRandom": 1,
     "max_size": 2,
     "commits_running": False
+}
+
+previous_memcache_data = {
+    "hits": 0,
+    "misses": 0,
+    "posts_served": 0,
+    "cache_size": 0,
+    "items_in_cache": 0
 }
 
 
@@ -45,7 +52,6 @@ def get():
     logging.info("Making a GET call")
     key = request.form.get('key')
     logging.info(f"Key received = {key}")
-
     if key in memcache:
         logging.info(f"Image found in cache with key = {key}")
         memcache.move_to_end(key)
@@ -114,35 +120,45 @@ def clearcache():
     return jsonify({"status": "success", "status_code": 200})
 
 
-# def commit_update():
-#     while True:
-#         logging.info("Starting 5 second sleep timer...")
-#         logging.info(f"isRandom = {memcache_data['isRandom']}, max_size = {memcache_data['max_size']}")
-#         time.sleep(5)
-#
-#         # First update memcache data
-#         with memapp.app_context():
-#             logging.info("Logging data to database...")
-#             memcache_data["timestamp"] = datetime.utcnow()
-#             new_entry = MemcacheData(timestamp=memcache_data['timestamp'], hits=memcache_data['hits'],
-#                                      misses=memcache_data['misses'], posts_served=memcache_data['posts_served'],
-#                                      num_items=len(memcache), current_size=memcache_data["cache_size"])
-#             session.add(new_entry)
-#             session.commit()
-#             logging.info("UPDATE: refreshed database with new memcache data")
-#
-#
-# @memapp.route('/update_db', methods=['POST'])
-# def update():
-#     logging.info("Request received to start logging to database...")
-#     thread = threading.Thread(target=commit_update)
-#     if memcache_data["commits_running"]:
-#         logging.info("Commit thread already running!")
-#         return jsonify({"status": "fail", "status_code": 400})
-#     thread.start()
-#     memcache_data["commits_running"] = True
-#     logging.info("Logging thread started successfully...")
-#     return jsonify({"status": "success", "status_code": 200})
+def commit_update():
+    while True:
+        logging.info("Starting 5 second sleep timer...")
+        logging.info(f"isRandom = {memcache_data['isRandom']}, max_size = {memcache_data['max_size']}")
+        time.sleep(5)
+
+        # Update all statistics now with Cloudwatch, not database
+        new_hits = memcache_data['hits'] - previous_memcache_data['hits']
+        new_misses = memcache_data['misses'] - previous_memcache_data['misses']
+        new_posts_served = memcache_data['posts_served'] - previous_memcache_data['posts_served']
+        new_cache_size = memcache_data['cache_size'] - previous_memcache_data['cache_size']
+        new_items_in_cache = len(memcache) - previous_memcache_data['items_in_cache']
+
+        previous_memcache_data['hits'] = memcache_data['hits']
+        previous_memcache_data['misses'] = memcache_data['misses']
+        previous_memcache_data['posts_served'] = memcache_data['posts_served']
+        previous_memcache_data['cache_size'] = memcache_data['cache_size']
+        previous_memcache_data['items_in_cache'] = len(memcache)
+
+        aws_helper.put_data_to_cloudwatch(Config.hits, new_hits, unit=None)
+        aws_helper.put_data_to_cloudwatch(Config.misses, new_misses, unit=None)
+        aws_helper.put_data_to_cloudwatch(Config.num_posts_served, new_posts_served, unit=None)
+        aws_helper.put_data_to_cloudwatch(Config.size_items_in_Megabytes, new_cache_size, unit="Megabytes")
+        aws_helper.put_data_to_cloudwatch(Config.num_items_in_cache, new_items_in_cache, unit=None)
+
+        logging.info("UPDATE: refreshed Cloudwatch with new memcache data")
+
+
+@memapp.route('/update_db', methods=['POST'])
+def update():
+    logging.info("Request received to start logging to database...")
+    thread = threading.Thread(target=commit_update)
+    if memcache_data["commits_running"]:
+        logging.info("Commit thread already running!")
+        return jsonify({"status": "fail", "status_code": 400})
+    thread.start()
+    memcache_data["commits_running"] = True
+    logging.info("Logging thread started successfully...")
+    return jsonify({"status": "success", "status_code": 200})
 
 
 # Refresh Configuration by querying it from the database

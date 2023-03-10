@@ -7,4 +7,5 @@ autoscaler_app.config.from_object(Config)
 
 from autoscaler_app import routes
 
-routes.start_monitoring()
+# Uncomment this when we want automatic monitoring
+# routes.start_monitoring()
