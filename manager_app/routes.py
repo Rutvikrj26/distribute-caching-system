@@ -5,11 +5,12 @@ from config import Config
 from frontend import frontend
 from frontend.models import MemcacheConfig
 from manager_app import manager_app, db
-from manager_app.models import ManagerConfig
 from flask import jsonify, request, render_template, flash, redirect, url_for
 
 from manager_app.forms import ManagerConfigForm
 from manager_app.models import ManagerConfig
+import boto3
+import json
 
 memapp_urls = [
     Config.MEMAPP_0_URL,
@@ -28,9 +29,9 @@ manager_app_data = {
     "maxSize": 2
 }
 @manager_app.route("/")
-@manager_app.route("/home")
+@manager_app.route("/index")
 def home():
-    return render_template('home.html', title="ECE1779 - Group 25 - Gauri Billore, Joseph Longpre, Rutvik Solanki")
+    return render_template('index.html')
 
 # Make a Manager Config Page that provides the options for configuring the pool
 # 1. Management Mode Page - Manual Mode/Automatic Mode Selection
@@ -108,9 +109,6 @@ def config():
         form=form
     )
 
-
-
-
 # Make a Pool Monitor Page that provides the Folllowing :
 # 1. Pool Statistics
 #   miss rate : to be pulled from Cloudwatch
@@ -121,6 +119,7 @@ def config():
 #
 @manager_app.route("/monitor")
 def monitor():
+
     # Connect to the CloudWatch client
     cloudwatch = boto3.client('cloudwatch')
 
@@ -140,13 +139,13 @@ def monitor():
 
     # Render the template with the data
     return render_template('monitor.html',
-                       active_nodes_data=json.dumps(active_nodes_data),
-                       active_nodes_labels=json.dumps(active_nodes_labels),
-                       miss_rate_data=json.dumps(),
-                       hit_rate_data=json.dumps(),
-                       num_items_data=json.dumps(),
-                       size_items_data=json.dumps(),
-                       num_requests_data=json.dumps())
+                           active_nodes_data=json.dumps(active_nodes_data),
+                           active_nodes_labels=json.dumps(active_nodes_labels),
+                           miss_rate_data=json.dumps(),
+                           hit_rate_data=json.dumps(),
+                           num_items_data=json.dumps(),
+                           size_items_data=json.dumps(),
+                           num_requests_data=json.dumps())
 
 
 
