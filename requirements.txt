@@ -21,3 +21,6 @@ urllib3==1.26.14
 visitor==0.1.3
 Werkzeug==2.2.2
 WTForms==3.0.1
+Boto3
+moto
+
