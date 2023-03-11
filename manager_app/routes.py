@@ -6,6 +6,7 @@ from frontend import frontend
 from frontend.models import MemcacheConfig
 from manager_app import manager_app, db
 from flask import jsonify, request, render_template, flash, redirect, url_for
+from autoscaler_app.routes import expand_node_pool, shrink_node_pool
 
 from manager_app.forms import ManagerConfigForm
 from manager_app.models import ManagerConfig
@@ -48,8 +49,7 @@ def config():
     logging.info("Accessed MANAGER CONFIGURATION page")
     with manager_app.app_context():
         current_manager_config = ManagerConfig.query.first()
-        if not ManagerConfig.query.first():
-            logging.info(f"Management Mode Automatic = {current_manager_config.management_mode}")
+        logging.info(f"Management Mode Automatic = {current_manager_config.management_mode}")
         form = ManagerConfigForm(
             management_mode=current_manager_config.management_mode,
             max_miss_rate_threshold=current_manager_config.max_miss_rate_threshold,
@@ -60,55 +60,83 @@ def config():
     if form.validate_on_submit():
         with manager_app.app_context():
             current_manager_config = ManagerConfig.query.first()
-            current_manager_config.management_mode = form.management_mode.data
-            current_manager_config.max_miss_rate_threshold = form.max_miss_rate_threshold.data
-            current_manager_config.min_miss_rate_threshold = form.min_miss_rate_threshold.data
-            current_manager_config.expand_pool_ratio = form.expand_pool_ratio.data
-            current_manager_config.shrink_pool_ratio = form.shrink_pool_ratio.data
-            db.session.commit()
-        flash("Successfully updated the manager configuration in Database!")
+            if form.submit.data:
+                if int(form.management_mode.data) == 1:
+                    current_manager_config.management_mode = form.management_mode.data
+                    current_manager_config.max_miss_rate_threshold = form.max_miss_rate_threshold.data
+                    current_manager_config.min_miss_rate_threshold = form.min_miss_rate_threshold.data
+                    current_manager_config.expand_pool_ratio = form.expand_pool_ratio.data
+                    current_manager_config.shrink_pool_ratio = form.shrink_pool_ratio.data
 
-        if current_manager_config.management_mode:  # automatic mode
-            form.max_miss_rate_threshold.render_kw = {'disabled': False}
-            form.min_miss_rate_threshold.render_kw = {'disabled': False}
-            form.expand_pool_ratio.render_kw = {'disabled': False}
-            form.shrink_pool_ratio.render_kw = {'disabled': False}
-
-            # TODO : Engage Pool Autoscaler
-
-            # return redirect(url_for('config'))
-
-        else:  # manual mode
-            form.max_miss_rate_threshold.render_kw = {'disabled': True}
-            form.min_miss_rate_threshold.render_kw = {'disabled': True}
-            form.expand_pool_ratio.render_kw = {'disabled': True}
-            form.shrink_pool_ratio.render_kw = {'disabled': True}
-
-            if form.grow_pool.data:
-                if current_manager_config.current_pool_size < 8:
-                    current_manager_config.current_pool_size += 1
-                    # TODO : Increase Pool Call Here
+                    autoscaler_data = {
+                        'mode': current_manager_config.management_mode,
+                        'numNodes': manager_app_data['num_active_nodes'],
+                        'expand_threshold': current_manager_config.max_miss_rate_threshold,
+                        'shrink_threshold': current_manager_config.min_miss_rate_threshold,
+                        'expand_multiplier': current_manager_config.expand_pool_ratio,
+                        'shrink_multiplier': current_manager_config.shrink_pool_ratio
+                    }
+    #                response = requests.post(Config.AUTOSCALER_APP_URL + "configure_autoscaler", data=autoscaler_data)
+                    print(autoscaler_data)
+                    logging.info(f" Autoscaler Data : {autoscaler_data}")
                     db.session.commit()
-                    flash(f"Successfully increased pool size to {current_manager_config.current_pool_size}")
+                    # if response.status_code == 200:
+                    #     db.session.commit()
+                    #     flash("Successfully updated configuration.")
+                    return redirect(url_for('config'))
                 else:
-                    flash("Pool size already at maximum.")
-                # return redirect(url_for('config'))
+                    flash("Cannot configure autoscaler parameters in manual mode.")
+                    return redirect(url_for('config'))
 
-            if form.shrink_pool.data:
-                if current_manager_config.current_pool_size > 1:
-                    current_manager_config.current_pool_size -= 1
-                    # TODO : Decrease Pool Call Here
-                    db.session.commit()
-                    flash(f"Successfully decreased pool size to {current_manager_config.current_pool_size}")
+            elif form.grow_pool.data:  # manual mode pool expansion
+                if int(form.management_mode.data) == 0:
+                    if manager_app_data['num_active_nodes'] < 8:
+                        manager_app_data['num_active_nodes'] += 1
+                        # TODO : Increase Pool Call Here
+                        # response = expand_node_pool(manual=True, node_delta=1)
+                        current_manager_config.management_mode = form.management_mode.data
+                        # if response == 200:
+                        #     db.session.commit()
+                        #     flash(f"Successfully changed management mode to manual.")
+                        db.session.commit()
+                        flash(f"Successfully increased pool size to {manager_app_data['num_active_nodes']}")
+                    else:
+                        flash("Pool size already at maximum.")
+                    return redirect(url_for('config'))
                 else:
-                    flash("Pool size already at minimum.")
-        return redirect(url_for('config'))
+                    flash("Cannot expand pool in automatic mode.")
+                    return redirect(url_for('config'))
+
+            elif form.shrink_pool.data:
+                if int(form.management_mode.data) == 0:
+                    if manager_app_data['num_active_nodes'] > 1:
+                        manager_app_data['num_active_nodes'] -= 1
+                        # TODO : Decrease Pool Call Here
+                        # response = shrink_node_pool(manual=True, node_delta=1)
+                        current_manager_config.management_mode = form.management_mode.data
+                        # if response == 200:
+                        #     db.session.commit()
+                        #     flash(f"Successfully changed management mode to manual.")
+                        db.session.commit()
+                        flash(f"Successfully decreased pool size to {manager_app_data['num_active_nodes']}")
+                    else:
+                        flash("Pool size already at minimum.")
+                    return redirect(url_for('config'))
+                else:
+                    flash("Cannot shrink pool in automatic mode.")
+                    return redirect(url_for('config'))
+
+            else:
+                flash("Invalid form data.")
+                # logging the error in form validation
+                logging.error(f"Invalid form data: {form.errors}")
+                return redirect(url_for('config'))
 
     return render_template(
         'config.html',
         title="ECE1779 - Group 25 - Configure the manager",
         form=form,
-        pool_size=current_manager_config.manual_pool_size
+        current_pool_size=manager_app_data['num_active_nodes'],
     )
 
 # Make a Pool Monitor Page that provides the Folllowing :

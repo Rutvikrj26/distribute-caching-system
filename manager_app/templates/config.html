@@ -1,79 +1,20 @@
 {% extends "base.html" %}
+{% import "bootstrap/wtf.html" as wtf %}
 
 {% block content %}
 <div class="container">
     <div class="row">
     <div class="col-md-6">
         <h2>Manager Configuration</h2>
+        current Active nodes : {{ current_pool_size }}
+        <br>
         <form method="POST" action="">
             {{ form.csrf_token }}
-            <div class="form-group">
-                {{ form.management_mode.label }}
-                <div>
-                    {{ form.management_mode(class="form-control") }}
-                    {% if form.management_mode.errors %}
-                    <span class="text-danger">{{ form.management_mode.errors[0] }}</span>
-                    {% endif %}
-                </div>
-            </div>
+            {{ wtf.quick_form(form)}}
 
-            {% if form.management_mode.data == "Automatic Mode" %}
-            <div class="form-group">
-                {{ form.max_miss_rate_threshold.label }}
-                <div>
-                    {{ form.max_miss_rate_threshold(class="form-control") }}
-                    {% if form.max_miss_rate_threshold.errors %}
-                    <span class="text-danger">{{ form.max_miss_rate_threshold.errors[0] }}</span>
-                    {% endif %}
-                </div>
-            </div>
-
-            <div class="form-group">
-                {{ form.min_miss_rate_threshold.label }}
-                <div>
-                    {{ form.min_miss_rate_threshold(class="form-control") }}
-                    {% if form.min_miss_rate_threshold.errors %}
-                    <span class="text-danger">{{ form.min_miss_rate_threshold.errors[0] }}</span>
-                    {% endif %}
-                </div>
-            </div>
-
-            <div class="form-group">
-                {{ form.expand_pool_ratio.label }}
-                <div>
-                    {{ form.expand_pool_ratio(class="form-control") }}
-                    {% if form.expand_pool_ratio.errors %}
-                    <span class="text-danger">{{ form.expand_pool_ratio.errors[0] }}</span>
-                    {% endif %}
-                </div>
-            </div>
-
-            <div class="form-group">
-                {{ form.shrink_pool_ratio.label }}
-                <div>
-                    {{ form.shrink_pool_ratio(class="form-control") }}
-                    {% if form.shrink_pool_ratio.errors %}
-                    <span class="text-danger">{{ form.shrink_pool_ratio.errors[0] }}</span>
-                    {% endif %}
-                </div>
-            </div>
-            {% else %}
-            <div class="form-group">
-                <label>Manual Mode Controls:</label>
-                <div class="btn-group" role="group">
-                    <button type="submit" name="grow_pool" value="1" class="btn btn-outline-success" {% if pool_size >= 8 %}disabled{% endif %}>Grow</button>
-                    <button type="submit" name="shrink_pool" value="1" class="btn btn-outline-danger" {% if pool_size <= 1 %}disabled{% endif %}>Shrink</button>
-                </div>
-                <br><br>
-                <label>Current Pool Size:</label> {{ pool_size }}
-            </div>
-            {% endif %}
-
-            <div class="form-group">
-                <button type="submit" class="btn btn-primary">Update Configuration</button>
-{#                <a href="{{ url_for('delete_app_data') }}" class="btn btn-danger">Delete Application Data</a>#}
+            <br>
+            {#                <a href="{{ url_for('delete_app_data') }}" class="btn btn-danger">Delete Application Data</a>#}
                 <a href="{{ url_for('clearcache') }}" class="btn btn-secondary">Clear Cache</a>
-            </div>
 
             {% with messages = get_flashed_messages() %}
             {% if messages %}
