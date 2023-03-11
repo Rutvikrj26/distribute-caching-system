@@ -37,22 +37,27 @@ autoscaler_app_data = {
 @autoscaler_app.route('/configure_autoscaler', methods=['GET', 'POST'])
 def configure_autoscaler():
     try:
-        # automatic should always be either 1 or 0, so store right away
-        autoscaler_app_data['automatic'] = int(request.form['isRandom'])
-        if request.form['expand_threshold'] is not None:
+        if request.form['expand_threshold'] is not "None":
             autoscaler_app_data['expand_threshold'] = float(request.form['expand_threshold'])
-        if request.form['shrink_threshold'] is not None:
+        if request.form['shrink_threshold'] is not "None":
             autoscaler_app_data['shrink_threshold'] = float(request.form['shrink_threshold'])
-        if request.form['expand_multiplier'] is not None:
+        if request.form['expand_multiplier'] is not "None":
             autoscaler_app_data['expand_multiplier'] = float(request.form['expand_multiplier'])
-        if request.form['shrink_multiplier'] is not None:
+        if request.form['shrink_multiplier'] is not "None":
             autoscaler_app_data['shrink_multiplier'] = float(request.form['shrink_multiplier'])
-        if autoscaler_app_data['automatic'] == 0 and request.form['manual_adjustment'] is not None:
-            manual_adjustment = int(request.form['manual_adjustment'])
-            if manual_adjustment == 1:
-                expand_node_pool(manual=True)
-            elif manual_adjustment == -1:
-                shrink_node_pool(manual=True)
+        if request.form['mode'] is not "None":
+            autoscaler_app_data['automatic'] = int(request.form['mode'])
+
+        if autoscaler_app_data['automatic'] == 0:
+            if request.form['numNodes'] is not None:
+                manual_num_nodes = request.form['numNodes']
+            else:
+                manual_num_nodes = autoscaler_app_data['num_active_nodes']
+            node_delta = manual_num_nodes - autoscaler_app_data['num_active_nodes']
+            if node_delta < 0:
+                shrink_node_pool(manual=True, node_delta=abs(node_delta))
+            else:
+                expand_node_pool(manual=True, node_delta=node_delta)
     except Exception:
         logging.info("ERROR! Could not configure autoscaler. Was request formatted properly??")
         return jsonify({"status": "failure", "status_code": 400})
@@ -87,13 +92,13 @@ def monitor_hit_and_miss_rates():
                     shrink_node_pool()
 
 
-def expand_node_pool(manual=False):
+def expand_node_pool(manual=False, node_delta=0):
     # First we call back all key/value pairs to be redistributed
     key_value_dict = get_all_key_value_pairs_from_nodes()
     old_active_nodes = autoscaler_app_data['num_active_nodes']
     # Next grow node pool according to multiplier
     if manual:
-        autoscaler_app_data['num_active_nodes'] += 1
+        autoscaler_app_data['num_active_nodes'] += node_delta
     else:
         autoscaler_app_data['num_active_nodes'] = min(int(autoscaler_app_data['num_active_nodes'] * autoscaler_app_data['expand_multiplier']), Config.MAX_NODES)
     new_active_nodes = autoscaler_app_data['num_active_nodes']
@@ -118,13 +123,13 @@ def expand_node_pool(manual=False):
             logging.info("FAIL!!! Received non-200 response from cache node")
 
 
-def shrink_node_pool(manual=False):
+def shrink_node_pool(manual=False, node_delta=0):
     # First we call back all key/value pairs to be redistributed
     key_value_dict = get_all_key_value_pairs_from_nodes()
     old_active_nodes = autoscaler_app_data['num_active_nodes']
     # Next shrink node pool according to multiplier
     if manual:
-        autoscaler_app_data['num_active_nodes'] -= 1
+        autoscaler_app_data['num_active_nodes'] -= node_delta
     else:
         autoscaler_app_data['num_active_nodes'] = max(int(autoscaler_app_data['num_active_nodes'] * autoscaler_app_data['shrink_multiplier']), 1)
     new_active_nodes = autoscaler_app_data['num_active_nodes']

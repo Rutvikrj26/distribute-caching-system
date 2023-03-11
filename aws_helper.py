@@ -132,6 +132,8 @@ def get_hits_and_misses_from_cloudwatch(period_in_minutes=1):
 
 @mock_cloudwatch
 def put_data_to_cloudwatch(metric_name, value, unit=None):
+    if unit is None:
+        unit = "None"
     try:
         logging.info(f"Putting {metric_name} data with value {value} to Cloudwatch...")
         cloudwatch = boto3.client('cloudwatch')

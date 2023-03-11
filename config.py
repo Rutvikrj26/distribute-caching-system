@@ -14,7 +14,7 @@ class Config(object):
     # Shouldn't need this folder anymore
     # UPLOAD_FOLDER = 'static'
     ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
-    S3_BUCKET_NAME = "your_bucket_name_here"
+    S3_BUCKET_NAME = "ece1779-group25"
     MAX_NODES = 8
 
     # IP ADDRESSES

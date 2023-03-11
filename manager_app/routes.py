@@ -41,7 +41,7 @@ def home():
 #   Ratio by which to shrink the pool
 # 3. Delete all Application Data Button
 # 4. Clear cache Button
-@manager_app.route("/config")
+
 @manager_app.route("/config", methods=['GET', 'POST'])
 def config():
     logging.info("Accessed MANAGER CONFIGURATION page")
@@ -121,40 +121,32 @@ def config():
 #
 @manager_app.route("/monitor")
 def monitor():
-    from flask import Flask, render_template
-    import boto3
-    import json
+    # Connect to the CloudWatch client
+    cloudwatch = boto3.client('cloudwatch')
 
-    app = Flask(__name__)
+    # Retrieve the metrics data for the last 30 minutes at 1-minute granularity
+    # TODO : Write the code for Metric Calls
+    response = cloudwatch.get_metric_data(
+        MetricDataQueries=[]
+    )
 
-    @app.route('/monitor')
-    def monitor():
-        # Connect to the CloudWatch client
-        cloudwatch = boto3.client('cloudwatch')
+    # Extract the data for each metric
 
-        # Retrieve the metrics data for the last 30 minutes at 1-minute granularity
-        # TODO : Write the code for Metric Calls
-        response = cloudwatch.get_metric_data(
-            MetricDataQueries=[]
-        )
+    # Create the data for the circular chart by fetching the required data from database
+    active_nodes = manager_app_data["num_active_nodes"]
+    inactive_nodes = 8 - active_nodes
+    active_nodes_data = [i % active_nodes + 1 for i in range(active_nodes + inactive_nodes)]
+    active_nodes_labels = [chr(ord('A') + i % active_nodes) for i in range(active_nodes + inactive_nodes)]
 
-        # Extract the data for each metric
-
-        # Create the data for the circular chart by fetching the required data from database
-        active_nodes = manager_app_data["num_active_nodes"]
-        inactive_nodes = 8 - active_nodes
-        active_nodes_data = [i % active_nodes + 1 for i in range(active_nodes + inactive_nodes)]
-        active_nodes_labels = [chr(ord('A') + i % active_nodes) for i in range(active_nodes + inactive_nodes)]
-
-        # Render the template with the data
-        return render_template('monitor.html',
-                               active_nodes_data=json.dumps(active_nodes_data),
-                               active_nodes_labels=json.dumps(active_nodes_labels),
-                               miss_rate_data=json.dumps(),
-                               hit_rate_data=json.dumps(),
-                               num_items_data=json.dumps(),
-                               size_items_data=json.dumps(),
-                               num_requests_data=json.dumps())
+    # Render the template with the data
+    return render_template('monitor.html',
+                       active_nodes_data=json.dumps(active_nodes_data),
+                       active_nodes_labels=json.dumps(active_nodes_labels),
+                       miss_rate_data=json.dumps(),
+                       hit_rate_data=json.dumps(),
+                       num_items_data=json.dumps(),
+                       size_items_data=json.dumps(),
+                       num_requests_data=json.dumps())
 
 
 
@@ -240,7 +232,7 @@ def get_all_keys():
 @manager_app.route("/clearcache", methods=["GET", "POST"])
 def clearcache():
     logging.info("Attempting to clear cache for all nodes...")
-    for i in range(0, manager_app_data["num_active_nodes"]):
+    for i in range(0, Config.MAX_NODES):
         requests.post(memapp_urls[i] + "/clearcache")
     logging.info("Successfully cleared cache for all active nodes!")
     return jsonify({"status": "success", "status_code": 200})

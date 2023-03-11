@@ -135,6 +135,7 @@ def display():
                 flash("ERROR: Could not receive fileobj from S3...")
                 return redirect(url_for('display'))
             b64string = jsonResponse['value']
+            image_location = 'data:image/png;base64,' + b64string
 
             # Now need to store back in the cache!
             logging.info(f"Successfully retrieved b64string from s3_app for key = {key}")
@@ -375,7 +376,11 @@ def api_delete_all():
 def api_list_keys():
     logging.info("API call to LIST_KEYS")
     try:
-        keys = Image.query(id).order_by(Image.timestamp.asc()).all()
+        keys = []
+        with frontend.app_context():
+            images = Image.query.order_by(Image.timestamp.asc())
+            for image in images:
+                keys.append(image.id)
         logging.info("Successfully retrieved keys from database")
     except Exception:
         logging.info("FAIL!!! Could not get list of keys from database. Returning empty list.")
@@ -506,15 +511,75 @@ def api_retrieval(rate):
 @frontend.route('/api/configure_cache', methods=['GET', 'POST'])
 def api_configure_cache():
     logging.info("API call to configure_cache...")
-    mode = request.form["mode"]
-    num_nodes = request.form["numNodes"]
-    cache_size = request.form["cacheSize"]
-    policy = request.form["policy"]  # Either RR = random replacement or LRU = least recently used
-    expand_multiplier = request.form["expRatio"]
-    shrink_multiplier = request.form["shrinkRatio"]
-    expand_threshold = request.form["maxMiss"]
-    shrink_threshold = request.form["minMiss"]
-    # TODO: Fill out the rest of this API call
+    # These go to autoscaler
+    if 'mode' in request.form:
+        if request.form["mode"] == "auto":
+            mode = "1"
+        else:
+            mode = "0"
+    else:
+        mode = "None"
+    if 'numNodes' in request.form:
+        numNodes = request.form["numNodes"]
+    else:
+        numNodes = "None"
+    if "expRatio" in request.form:
+        expand_multiplier = request.form["expRatio"]
+    else:
+        expand_multiplier = "None"
+    if "shrinkRatio" in request.form:
+        shrink_multiplier = request.form["shrinkRatio"]
+    else:
+        shrink_multiplier = "None"
+    if "maxMiss" in request.form:
+        expand_threshold = request.form["maxMiss"]
+    else:
+        expand_threshold = "None"
+    if "minMiss" in request.form:
+        shrink_threshold = request.form["minMiss"]
+    else:
+        shrink_threshold = "None"
+
+    autoscaler_data = {
+        'mode': mode,
+        'numNodes': numNodes,
+        'expand_threshold': expand_threshold,
+        'shrink_threshold': shrink_threshold,
+        'expand_multiplier': expand_multiplier,
+        'shrink_multiplier': shrink_multiplier
+    }
+    response = requests.post(Config.AUTOSCALER_APP_URL + "configure_autoscaler", data=autoscaler_data)
+    jsonResponse = response.json()
+    if jsonResponse["status_code"] == 200:
+        autoscaler_success = True
+        logging.info("Successfully pushed configuration data to autoscaler!")
+    else:
+        autoscaler_success = False
+        logging.info("ERROR! Failed to push configuration data to autoscaler...")
+
+    if 'cacheSize' in request.form:
+        cache_size = request.form["cacheSize"]
+    else:
+        cache_size = "None"
+    if 'policy' in request.form:
+        policy = request.form["policy"]
+    else:
+        policy = "None"
+
+    response = requests.post(Config.MANAGER_APP_URL + "configure_autoscaler", data={"cachesize": cache_size, "policy": policy})
+    jsonResponse = response.json()
+    if jsonResponse["status_code"] == 200:
+        manager_success = True
+        logging.info("Successfully pushed configuration data to manager app!")
+    else:
+        manager_success = False
+        logging.info("ERROR! FAiled to push configuration data to manager app...")
+
+    if manager_success and autoscaler_success:
+        return jsonify({"success": "true", "mode": request.form["mode"], "numNodes": request.form["numNodes"], "cacheSize": request.form["cacheSize"], "policy": request.form["policy"]})
+    else:
+        return jsonify({"success": "failure", "mode": request.form["mode"], "numNodes": request.form["numNodes"],
+                        "cacheSize": request.form["cacheSize"], "policy": request.form["policy"]})
 
 
 @frontend.route('/api/getNumNodes', methods=['GET', 'POST'])
