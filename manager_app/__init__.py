@@ -15,3 +15,6 @@ from manager_app import routes, models
 
 with manager_app.app_context():
     db.create_all()
+    default_config = models.ManagerConfig()
+    db.session.add(default_config)
+    db.session.commit()

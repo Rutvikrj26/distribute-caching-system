@@ -12,7 +12,7 @@ class ManagerConfigForm(FlaskForm):
     grow_pool = SubmitField('Grow Pool')
     shrink_pool = SubmitField('Shrink Pool')
 
-    def validate(self):
+    def validate(self, extra_validators=None):
         """
         Validate the form.
 

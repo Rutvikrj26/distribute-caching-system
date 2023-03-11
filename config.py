@@ -12,6 +12,8 @@ class Config(object):
     # Going to RDS is as simple as changing the Database URI
     # mysql://admin:i_am_from_beyond@ece.cgdahn06kt1q.us-east-2.rds.amazonaws.com:3306/ece
 
+    AWS_REGION='us-east-1'
+
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     # Shouldn't need this folder anymore
     # UPLOAD_FOLDER = 'static'

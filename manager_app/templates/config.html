@@ -60,18 +60,18 @@
             <div class="form-group">
                 <label>Manual Mode Controls:</label>
                 <div class="btn-group" role="group">
-                    <button type="submit" name="grow_pool" value="1" class="btn btn-outline-success" {% if form.pool_size.data >= 8 %}disabled{% endif %}>Grow</button>
-                    <button type="submit" name="shrink_pool" value="1" class="btn btn-outline-danger" {% if form.pool_size.data <= 1 %}disabled{% endif %}>Shrink</button>
+                    <button type="submit" name="grow_pool" value="1" class="btn btn-outline-success" {% if pool_size >= 8 %}disabled{% endif %}>Grow</button>
+                    <button type="submit" name="shrink_pool" value="1" class="btn btn-outline-danger" {% if pool_size <= 1 %}disabled{% endif %}>Shrink</button>
                 </div>
                 <br><br>
-                <label>Current Pool Size:</label> {{ form.pool_size.data }}
+                <label>Current Pool Size:</label> {{ pool_size }}
             </div>
             {% endif %}
 
             <div class="form-group">
                 <button type="submit" class="btn btn-primary">Update Configuration</button>
-                <a href="{{ url_for('delete_app_data') }}" class="btn btn-danger">Delete Application Data</a>
-                <a href="{{ url_for('clear_cache') }}" class="btn btn-secondary">Clear Cache</a>
+{#                <a href="{{ url_for('delete_app_data') }}" class="btn btn-danger">Delete Application Data</a>#}
+                <a href="{{ url_for('clearcache') }}" class="btn btn-secondary">Clear Cache</a>
             </div>
 
             {% with messages = get_flashed_messages() %}

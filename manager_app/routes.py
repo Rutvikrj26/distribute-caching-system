@@ -68,46 +68,47 @@ def config():
             db.session.commit()
         flash("Successfully updated the manager configuration in Database!")
 
-    if current_manager_config.management_mode:  # automatic mode
-        form.max_miss_rate_threshold.render_kw = {'disabled': False}
-        form.min_miss_rate_threshold.render_kw = {'disabled': False}
-        form.expand_pool_ratio.render_kw = {'disabled': False}
-        form.shrink_pool_ratio.render_kw = {'disabled': False}
+        if current_manager_config.management_mode:  # automatic mode
+            form.max_miss_rate_threshold.render_kw = {'disabled': False}
+            form.min_miss_rate_threshold.render_kw = {'disabled': False}
+            form.expand_pool_ratio.render_kw = {'disabled': False}
+            form.shrink_pool_ratio.render_kw = {'disabled': False}
 
-        # TODO : Engage Pool Autoscaler
+            # TODO : Engage Pool Autoscaler
 
+            # return redirect(url_for('config'))
+
+        else:  # manual mode
+            form.max_miss_rate_threshold.render_kw = {'disabled': True}
+            form.min_miss_rate_threshold.render_kw = {'disabled': True}
+            form.expand_pool_ratio.render_kw = {'disabled': True}
+            form.shrink_pool_ratio.render_kw = {'disabled': True}
+
+            if form.grow_pool.data:
+                if current_manager_config.current_pool_size < 8:
+                    current_manager_config.current_pool_size += 1
+                    # TODO : Increase Pool Call Here
+                    db.session.commit()
+                    flash(f"Successfully increased pool size to {current_manager_config.current_pool_size}")
+                else:
+                    flash("Pool size already at maximum.")
+                # return redirect(url_for('config'))
+
+            if form.shrink_pool.data:
+                if current_manager_config.current_pool_size > 1:
+                    current_manager_config.current_pool_size -= 1
+                    # TODO : Decrease Pool Call Here
+                    db.session.commit()
+                    flash(f"Successfully decreased pool size to {current_manager_config.current_pool_size}")
+                else:
+                    flash("Pool size already at minimum.")
         return redirect(url_for('config'))
-
-    else:  # manual mode
-        form.max_miss_rate_threshold.render_kw = {'disabled': True}
-        form.min_miss_rate_threshold.render_kw = {'disabled': True}
-        form.expand_pool_ratio.render_kw = {'disabled': True}
-        form.shrink_pool_ratio.render_kw = {'disabled': True}
-
-        if form.grow_pool.data:
-            if current_manager_config.current_pool_size < 8:
-                current_manager_config.current_pool_size += 1
-                # TODO : Increase Pool Call Here
-                db.session.commit()
-                flash(f"Successfully increased pool size to {current_manager_config.current_pool_size}")
-            else:
-                flash("Pool size already at maximum.")
-            return redirect(url_for('config'))
-
-        if form.shrink_pool.data:
-            if current_manager_config.current_pool_size > 1:
-                current_manager_config.current_pool_size -= 1
-                # TODO : Decrease Pool Call Here
-                db.session.commit()
-                flash(f"Successfully decreased pool size to {current_manager_config.current_pool_size}")
-            else:
-                flash("Pool size already at minimum.")
-            return redirect(url_for('config'))
 
     return render_template(
         'config.html',
         title="ECE1779 - Group 25 - Configure the manager",
-        form=form
+        form=form,
+        pool_size=current_manager_config.manual_pool_size
     )
 
 # Make a Pool Monitor Page that provides the Folllowing :
@@ -121,14 +122,15 @@ def config():
 @manager_app.route("/monitor")
 def monitor():
 
-    # Connect to the CloudWatch client
-    cloudwatch = boto3.client('cloudwatch')
-
-    # Retrieve the metrics data for the last 30 minutes at 1-minute granularity
-    # TODO : Write the code for Metric Calls
-    response = cloudwatch.get_metric_data(
-        MetricDataQueries=[]
-    )
+    # # Connect to the CloudWatch client
+    # cloudwatch = boto3.client('cloudwatch', region_name=Config.AWS_REGION)
+    #
+    # # Retrieve the metrics data for the last 30 minutes at 1-minute granularity
+    # # TODO : Write the code for Metric Calls
+    # response = cloudwatch.get_metric_data(
+    #     MetricDataQueries=[]
+    # )
+    get_hits_and_misses_from_cloudwatch
 
     # Extract the data for each metric
 
