@@ -3,10 +3,10 @@ from wtforms import BooleanField, FloatField, RadioField, SubmitField
 from wtforms.validators import DataRequired, NumberRange
 
 class ManagerConfigForm(FlaskForm):
-    management_mode = BooleanField('Management Mode', validators=[DataRequired()])
+    management_mode = RadioField('Management Mode', choices=[('True', 'Automatic'), ('False', 'Manual')], validators=[DataRequired()])
     # optional form fields
-    max_miss_rate_threshold = FloatField('Max Miss Rate Threshold')
-    min_miss_rate_threshold = FloatField('Min Miss Rate Threshold')
+    max_miss_rate_threshold = FloatField('Max Miss Rate Threshold', validators=[NumberRange(min=0.0, max=1.0)])
+    min_miss_rate_threshold = FloatField('Min Miss Rate Threshold', validators=[NumberRange(min=0.0, max=1.0)])
     expand_pool_ratio = FloatField('Expand Pool Ratio', validators=[NumberRange(min=1.0, max=8.0)])
     shrink_pool_ratio = FloatField('Shrink Pool Ratio', validators=[NumberRange(min=0.1, max=1.0)])
     grow_pool = SubmitField('Grow Pool')

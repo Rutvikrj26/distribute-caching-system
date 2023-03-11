@@ -12,3 +12,6 @@ migrate = Migrate(manager_app, db)
 bootstrap = Bootstrap(manager_app)
 
 from manager_app import routes, models
+
+with manager_app.app_context():
+    db.create_all()

@@ -48,14 +48,15 @@ def config():
     logging.info("Accessed MANAGER CONFIGURATION page")
     with manager_app.app_context():
         current_manager_config = ManagerConfig.query.first()
-        logging.info(f"Management Mode = {current_manager_config.management_mode}")
-    form = ManagerConfigForm(
-        management_mode=current_manager_config.management_mode,
-        max_miss_rate_threshold=current_manager_config.max_miss_rate_threshold,
-        min_miss_rate_threshold=current_manager_config.min_miss_rate_threshold,
-        expand_pool_ratio=current_manager_config.expand_pool_ratio,
-        shrink_pool_ratio=current_manager_config.shrink_pool_ratio
-    )
+        if not ManagerConfig.query.first():
+            logging.info(f"Management Mode Automatic = {current_manager_config.management_mode}")
+        form = ManagerConfigForm(
+            management_mode=current_manager_config.management_mode,
+            max_miss_rate_threshold=current_manager_config.max_miss_rate_threshold,
+            min_miss_rate_threshold=current_manager_config.min_miss_rate_threshold,
+            expand_pool_ratio=current_manager_config.expand_pool_ratio,
+            shrink_pool_ratio=current_manager_config.shrink_pool_ratio
+        )
     if form.validate_on_submit():
         with manager_app.app_context():
             current_manager_config = ManagerConfig.query.first()
