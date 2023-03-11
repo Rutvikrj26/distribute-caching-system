@@ -130,7 +130,7 @@ def monitor():
     # response = cloudwatch.get_metric_data(
     #     MetricDataQueries=[]
     # )
-    get_hits_and_misses_from_cloudwatch
+    # get_hits_and_misses_from_cloudwatch
 
     # Extract the data for each metric
 
@@ -143,12 +143,12 @@ def monitor():
     # Render the template with the data
     return render_template('monitor.html',
                            active_nodes_data=json.dumps(active_nodes_data),
-                           active_nodes_labels=json.dumps(active_nodes_labels),
-                           miss_rate_data=json.dumps(),
-                           hit_rate_data=json.dumps(),
-                           num_items_data=json.dumps(),
-                           size_items_data=json.dumps(),
-                           num_requests_data=json.dumps())
+                           active_nodes_labels=json.dumps(active_nodes_labels))
+                           # miss_rate_data=json.dumps(),
+                           # hit_rate_data=json.dumps(),
+                           # num_items_data=json.dumps(),
+                           # size_items_data=json.dumps(),
+                           # num_requests_data=json.dumps())
 
 
 

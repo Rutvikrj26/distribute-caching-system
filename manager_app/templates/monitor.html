@@ -25,11 +25,11 @@
   // Parse the data from the Flask route
   var active_nodes_data = {{ active_nodes_data|safe }};
   var active_nodes_labels = {{ active_nodes_labels|safe }};
-  var miss_rate_data = {{ miss_rate_data|safe }};
-  var hit_rate_data = {{ hit_rate_data|safe }};
-  var num_items_data = {{ num_items_data|safe }};
-  var size_items_data = {{ size_items_data|safe }};
-  var num_requests_data = {{ num_requests_data|safe }};
+  {#var miss_rate_data = {{ miss_rate_data|safe }};#}
+  {#var hit_rate_data = {{ hit_rate_data|safe }};#}
+  {#var num_items_data = {{ num_items_data|safe }};#}
+  {#var size_items_data = {{ size_items_data|safe }};#}
+  {#var num_requests_data = {{ num_requests_data|safe }};#}
 
 
 // Helper function to generate a random color
@@ -60,70 +60,70 @@ for (var i = 0; i < numActiveNodes; i++) {
     }
   });
 
-  // Create the line chart for miss rate
-  var missRateChart = new Chart('miss-rate-chart', {
-    type: 'line',
-    data: {
-      labels: Array.from(Array(miss_rate_data.length), (_, i) => (i+1).toString()),
-      datasets: [{
-        label: 'Miss Rate',
-        data: miss_rate_data,
-        backgroundColor: '#36A2EB'
-      }]
-    }
-  });
-
-  // Create the line chart for hit rate
-  var hitRateChart = new Chart('hit-rate-chart', {
-    type: 'line',
-    data: {
-      labels: Array.from(Array(hit_rate_data.length), (_, i) => (i+1).toString()),
-      datasets: [{
-        label: 'Hit Rate',
-        data: hit_rate_data,
-        backgroundColor: '#FF6384'
-      }]
-    }
-  });
-
-  // Create the line chart for number of items in cache
-  var itemsChart = new Chart('items-chart', {
-    type: 'line',
-    data: {
-      labels: Array.from(Array(num_items_data.length), (_, i) => (i+1).toString()),
-      datasets: [{
-        label: 'Number of Items in Cache',
-        data: num_items_data,
-        backgroundColor: '#4BC0C0'
-      }]
-    }
-  });
-
-  // Create the line chart for total size of items in cache
-  var sizeChart = new Chart('size-chart', {
-    type: 'line',
-    data: {
-      labels: Array.from(Array(size_items_data.length), (_, i) => (i+1).toString()),
-      datasets: [{
-        label: 'Total Size of Items in Cache',
-        data: size_items_data,
-        backgroundColor: '#FFCE56'
-      }]
-    }
-  });
-
-  // Create the line chart for number of requests served per minute
-    var requestsChart = new Chart('requests-chart', {
-        type: 'line',
-        data: {
-        labels: Array.from(Array(num_requests_data.length), (_, i) => (i+1).toString()),
-        datasets: [{
-            label: 'Number of Requests Served per Minute',
-            data: num_requests_data,
-            backgroundColor: '#2962ff'
-        }]
-        }
-    });
+  {#// Create the line chart for miss rate#}
+  {#var missRateChart = new Chart('miss-rate-chart', {#}
+  {#  type: 'line',#}
+  {#  data: {#}
+  {#    labels: Array.from(Array(miss_rate_data.length), (_, i) => (i+1).toString()),#}
+  {#    datasets: [{#}
+  {#      label: 'Miss Rate',#}
+  {#      data: miss_rate_data,#}
+  {#      backgroundColor: '#36A2EB'#}
+  {#    }]#}
+  {#  }#}
+  {#});#}
+  {##}
+  {#// Create the line chart for hit rate#}
+  {#var hitRateChart = new Chart('hit-rate-chart', {#}
+  {#  type: 'line',#}
+  {#  data: {#}
+  {#    labels: Array.from(Array(hit_rate_data.length), (_, i) => (i+1).toString()),#}
+  {#    datasets: [{#}
+  {#      label: 'Hit Rate',#}
+  {#      data: hit_rate_data,#}
+  {#      backgroundColor: '#FF6384'#}
+  {#    }]#}
+  {#  }#}
+  {#});#}
+  {##}
+  {#// Create the line chart for number of items in cache#}
+  {#var itemsChart = new Chart('items-chart', {#}
+  {#  type: 'line',#}
+  {#  data: {#}
+  {#    labels: Array.from(Array(num_items_data.length), (_, i) => (i+1).toString()),#}
+  {#    datasets: [{#}
+  {#      label: 'Number of Items in Cache',#}
+  {#      data: num_items_data,#}
+  {#      backgroundColor: '#4BC0C0'#}
+  {#    }]#}
+  {#  }#}
+  {#});#}
+  {##}
+  {#// Create the line chart for total size of items in cache#}
+  {#var sizeChart = new Chart('size-chart', {#}
+  {#  type: 'line',#}
+  {#  data: {#}
+  {#    labels: Array.from(Array(size_items_data.length), (_, i) => (i+1).toString()),#}
+  {#    datasets: [{#}
+  {#      label: 'Total Size of Items in Cache',#}
+  {#      data: size_items_data,#}
+  {#      backgroundColor: '#FFCE56'#}
+  {#    }]#}
+  {#  }#}
+  {#});#}
+  {##}
+  {#// Create the line chart for number of requests served per minute#}
+  {#  var requestsChart = new Chart('requests-chart', {#}
+  {#      type: 'line',#}
+  {#      data: {#}
+  {#      labels: Array.from(Array(num_requests_data.length), (_, i) => (i+1).toString()),#}
+  {#      datasets: [{#}
+  {#          label: 'Number of Requests Served per Minute',#}
+  {#          data: num_requests_data,#}
+  {#          backgroundColor: '#2962ff'#}
+  {#      }]#}
+  {#      }#}
+  {#  });#}
 
 </script>
 {% endblock %}
