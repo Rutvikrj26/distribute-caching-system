@@ -302,6 +302,7 @@ def get_num_nodes():
 @manager_app.route('/update_num_active_nodes', methods=['GET', 'POST'])
 def update_num_active_nodes():
     manager_app_data['num_active_nodes'] = int(request.form["numNodes"])
+    return jsonify({"status": "success", "status_code": 200})
 
 # start the logging thread
 @manager_app.route('/start_logging', methods=['GET', 'POST'])

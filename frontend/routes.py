@@ -319,6 +319,9 @@ def update_num_active_nodes():
     frontend_data['old_active_nodes'] = int(request.form["old_active_nodes"])
     frontend_data['new_active_nodes'] = int(request.form["new_active_nodes"])
     frontend_data['update_active_nodes'] = True
+    return jsonify({"status": "success", "status_code": 200})
+
+
 
 
 #####################################
