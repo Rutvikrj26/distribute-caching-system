@@ -7,9 +7,6 @@ from datetime import datetime
 import time
 
 import logging
-from frontend import frontend
-from frontend.models import MemcacheConfig
-from config import Config
 
 # Logging setup
 logger = logging.getLogger()
