@@ -36,9 +36,10 @@ class Config(object):
     MEMAPP_7_URL = "http://18.224.69.57:5000/"
 
     # Cloudwatch metrics - use these, so we don't accidentally make doubles that cost $$$
-    misses = "misses"
-    hits = "hits"
-    num_items_in_cache = "num_items_in_cache"
-    size_items_in_Megabytes = "size_items_in_Megabytes"
-    num_active_nodes = "num_active_nodes"
-    num_posts_served = "num_posts_served"
+    cloudwatch_namespace = 'ECE1779/Grp25'
+    misses = 'misses'
+    hits = 'hits'
+    num_items_in_cache = 'number_of_items_in_cache'
+    size_items_in_Megabytes = 'cache_size'
+    num_active_nodes = 'num_active_nodes'
+    num_posts_served = 'posts_served'
