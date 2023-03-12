@@ -32,6 +32,6 @@ def run_command_on_instance(instance_ip, command):
 # Loop through the instances and run the respective run files
 for instance_name, instance_info in instances.items():
     instance_ip, run_file = instance_info
-    command = f"cd app && nohup python {run_file} &>/dev/null &"
+    command = f"cd app && git pull"
     run_command_on_instance(instance_ip, command)
-    print(f"Started {run_file} on {instance_ip}")
+    print(f"Updated code on {instance_ip}")
