@@ -6,6 +6,9 @@ from werkzeug.datastructures import FileStorage
 from s3_app import s3_app
 from flask import request, jsonify
 
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
+
 
 @s3_app.route("/", methods=['GET'])
 def index():
@@ -17,7 +20,9 @@ def download_image():
     logging.info("Getting image from S3...")
     key = request.form["key"]
     bucket = request.form["bucket"]
+    logging.info(f"Key = {key} and bucket = {bucket}")
     my_file_storage = aws_helper.download_fileobj(key, bucket)
+    logging.info(f"Received my_file_storage...")
     if my_file_storage is None:
         logging.info("Error! Could not get image from S3...")
         return jsonify({"status": "failure", "value": None, "status_code": 400})
@@ -32,8 +37,11 @@ def upload_image():
     key = request.form["key"]
     bucket = request.form["bucket"]
     b64string = request.form["value"]
+    logging.info(f"Key = {key} and bucket = {bucket} and length of b64string = {len(b64string)}")
     my_file_storage = FileStorage(io.BytesIO(b64decode(b64string.encode("ASCII"))))
+    logging.info(f"File storage object created without error")
     upload_success = aws_helper.upload_fileobj(key, my_file_storage, bucket)
+    logging.info(f"upload_success boolean = {upload_success}")
     if not upload_success:
         logging.info("ERROR! Failed to upload to S3...")
         return jsonify({"status": "failure", "status_code": 400})
