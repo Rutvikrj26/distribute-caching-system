@@ -42,6 +42,18 @@ def upload():
             flash("File type is not allowed - please upload a PNG, JPEG, JPG, or GIF file.")
             return redirect(url_for('upload'))
 
+
+        # Store on S3
+        response = requests.post(Config.S3_APP_URL + "upload_image",
+                                 data={'key': key, 'value': b64string, 'bucket': Config.S3_BUCKET_NAME})
+        jsonResponse = response.json()
+        if jsonResponse['status_code'] != 200:
+            logging.info("FAIL!!! Could not save image to S3")
+            flash("ERROR: Could not save the image to S3. Please try again later.")
+            return redirect(url_for('upload'))
+        logging.info("Successfully saved image to S3!")
+        flash("Image successfully uploaded!")
+
         # Store in database
         try:
             with frontend.app_context():
@@ -72,23 +84,11 @@ def upload():
             else:
                 logging.info("FAIL!!! Received non-200 response from cache manager")
                 flash("ERROR: Bad response from cache.")
-                return redirect(url_for('upload'))
+            return redirect(url_for('upload'))
         except Exception:
             logging.info("FAIL!!! Error encoding file or sending encoded file to cache.")
             flash("ERROR: Could not store image in cache...")
             return redirect(url_for('upload'))
-
-        # Store on S3
-        response = requests.post(Config.S3_APP_URL + "upload_image",
-                                 data={'key': key, 'value': b64string, 'bucket': Config.S3_BUCKET_NAME})
-        jsonResponse = response.json()
-        if jsonResponse['status_code'] != 200:
-            logging.info("FAIL!!! Could not save image to S3")
-            flash("ERROR: Could not save the image to S3. Please try again later.")
-            return redirect(url_for('upload'))
-        logging.info("Successfully saved image to S3!")
-        flash("Image successfully uploaded!")
-        return redirect(url_for('upload'))
 
     if frontend_data['update_active_nodes']:
         frontend_data['update_active_nodes'] = False
