@@ -25,13 +25,23 @@ def upload_fileobj(key, file_storage_object, bucket):
 
 # @mock_s3
 def download_fileobj(key, bucket):
+    # try:
+    #     logging.info("Attempting to download image from S3...")
+    #     my_file_storage = FileStorage()
+    #     s3 = boto3.client('s3')
+    #     s3.get_object(bucket,key, my_file_storage)
+    # except Exception:
+    #     logging.info("S3 Error - Could not download file object...")
+    #     return None
+    # logging.info("S3 download object successful!")
+    # return my_file_storage
+
     try:
-        logging.info("Attempting to download image from S3...")
-        # my_file_storage = FileStorage()
+        logging.info("Attempting to download object from S3...")
         s3 = boto3.client('s3')
-        my_file_storage = s3.download_fileobj(bucket, key)
-    except Exception:
-        logging.info("S3 Error - Could not download file object...")
+        my_file_storage = s3.get_object(Bucket=bucket, Key=key)['Body']
+    except Exception as e:
+        logging.error("S3 Error - Could not download object: {}".format(e))
         return None
     logging.info("S3 download object successful!")
     return my_file_storage
