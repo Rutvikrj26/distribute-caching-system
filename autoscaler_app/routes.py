@@ -77,8 +77,12 @@ def monitor_hit_and_miss_rates():
         hits, misses = aws_helper.get_hits_and_misses_from_cloudwatch()
         miss_total = autoscaler_app_data['last_miss_total'] + misses
         hit_total = autoscaler_app_data['last_hit_total'] + hits
-        miss_rate = float(miss_total / (hit_total + miss_total))
-        hit_rate = float(1 - miss_rate)
+        if hit_total + miss_total == 0:
+            miss_rate = 0.0
+            hit_rate = 0.0
+        else:
+            miss_rate = float(miss_total / (hit_total + miss_total))
+            hit_rate = float(1 - miss_rate)
         autoscaler_app_data['last_miss_total'] = miss_total
         autoscaler_app_data['last_hit_total'] = hit_total
 
