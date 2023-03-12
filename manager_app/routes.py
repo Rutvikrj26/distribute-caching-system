@@ -163,6 +163,7 @@ def monitor():
     # Extract the data for each metric
 
     # Create the data for the circular chart by fetching the required data from database
+    #ToDo: get num_active_nodes from cloudwatch
     active_nodes = manager_app_data["num_active_nodes"]
     inactive_nodes = 8 - active_nodes
     active_nodes_data = [i % active_nodes + 1 for i in range(active_nodes + inactive_nodes)]
