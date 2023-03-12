@@ -6,26 +6,26 @@ class Config(object):
     SECRET_KEY = os.environ.get('SECRET_KEY') or 'you-will-never-guess'
     SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or \
       'mysql+pymysql://admin:i_am_from_beyond@ece.cgdahn06kt1q.us-east-2.rds.amazonaws.com:3306/ece'
-        # 'sqlite:///' + os.path.join(basedir, 'app.db')
+    # 'sqlite:///' + os.path.join(basedir, 'app.db')
 #        'mysql+pymysql://ece1779:ece1779@localhost/ece'
 
     # Going to RDS is as simple as changing the Database URI
     # mysql://admin:i_am_from_beyond@ece.cgdahn06kt1q.us-east-2.rds.amazonaws.com:3306/ece
 
-    AWS_REGION='us-east-1'
+    AWS_REGION='us-east-2'
 
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     # Shouldn't need this folder anymore
     # UPLOAD_FOLDER = 'static'
     ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
-    S3_BUCKET_NAME = "ece1779-group25"
+    S3_BUCKET_NAME = "ece-a2"
     MAX_NODES = 8
 
     # IP ADDRESSES
     FRONTEND_URL = "http://3.139.103.194:5000/"
     MANAGER_APP_URL = "http://3.139.103.194:5001/"
     AUTOSCALER_APP_URL = "http://3.139.103.194:5002/"
-    S3_APP_URL = "http://3.139.103.194:5003//"
+    S3_APP_URL = "http://3.139.103.194:5003/"
     MEMAPP_0_URL = "http://3.145.153.213:5000/"
     MEMAPP_1_URL = "http://3.145.7.90:5000/"
     MEMAPP_2_URL = "http://3.142.135.104:5000/"
