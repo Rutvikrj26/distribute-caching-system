@@ -11,10 +11,10 @@ memcache = OrderedDict()
 
 memapp = Flask(__name__, static_url_path="", static_folder="static")
 memapp.config.from_object(Config)
-db = SQLAlchemy(memapp)
-migrate = Migrate(memapp, db)
+# db = SQLAlchemy(memapp)
+# migrate = Migrate(memapp, db)
 
-from memapp import routes, models
+from memapp import routes
 
-with memapp.app_context():
-    db.create_all()
+# with memapp.app_context():
+#     db.create_all()
