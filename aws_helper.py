@@ -119,32 +119,71 @@ def get_hits_and_misses_from_cloudwatch(period_in_minutes=1):
         misses.append(miss[1])
 
     logging.info("Successfully retrieved and parsed Cloudwatch metric data!")
-    return hits, misses
+    return hits[-1], misses[-1]
 
 
 # @mock_cloudwatch
-def put_data_to_cloudwatch(metric_name, value, unit=None):
+def put_data_to_cloudwatch(metric_name, value, timestamp, unit=None):
     if unit is None:
         unit = "None"
     try:
-        logging.info(f"Putting {metric_name} data with value {value} to Cloudwatch...")
-        cloudwatch = boto3.client('cloudwatch')
-        cloudwatch.put_metric_data(
-            NameSpace='SITE/TRAFFIC',
-            MetricData=[
-                {
-                    'MetricName': metric_name,
-                    'Unit': unit,
-                    'Value': value
-                }
-            ]
-        )
-    except Exception:
-        logging.info("ERROR! Could not put metric data to Cloudwatch...")
-        return False
+            cloudwatch = boto3.client('cloudwatch', region_name=Config.AWS_REGION)
+            cloudwatch.put_metric_data(
+                MetricData=[
+                    {
+                        'MetricName': metric_name,
+                        'Unit': unit,
+                        'Timestamp': timestamp,
+                        'Value': value
+                    },
+                ],
+                Namespace=Config.cloudwatch_namespace
+            )
 
+    except Exception as inst:
+        logging.info("CloudWatch Metric Update Error - Could not upload singular metric data to cloudwatch..." + str((inst)))
+        return False
     logging.info("Successfully put metric data to Cloudwatch!")
     return True
+
+
+# @mock_cloudwatch
+def get_data_from_cloudwatch(metric_name, period_in_minutes):
+    try:
+        logging.info("Sending hit/miss get request to Cloudwatch...")
+        cloudwatch = boto3.client('cloudwatch', region_name=Config.AWS_REGION)
+        graphing_data = cloudwatch.get_metric_statistics(
+            Period=1 * 60,
+            StartTime=datetime.utcnow() - timedelta(seconds=period_in_minutes * 60),
+            EndTime=datetime.utcnow() - timedelta(seconds=0 * 60),
+            MetricName=metric_name,
+            Namespace=Config.cloudwatch_namespace,  # Unit='Percent',
+            Statistics=['Sum'])
+        DataList = []
+        for item in graphing_data["Datapoints"]:
+            Sum = item["Sum"]
+            Time = item['Timestamp']
+            Data = [Time, Sum]
+            DataList.append(Data)
+        DataList.sort(key=itemgetter(0))
+
+    except Exception:
+        logging.info("CloudWatch Metric Query Error - Could not get memcache data from cloudwatch..." + str(inst))
+        return None
+
+    times = []
+    data = []
+
+    for row in HitsList:
+        times.append(row[0])
+        data.append(row[1])
+
+    stats = list(zip(times, data))
+
+    logging.info("Successfully retrieved and parsed Cloudwatch metric data!")
+    return stats
+
+
 # @mock_cloudwatch
 def log_memcache_stats(num_items, **stats):
     try:
@@ -187,6 +226,9 @@ def log_memcache_stats(num_items, **stats):
 
     except Exception as inst:
         logging.info("CloudWatch Metric Update Error - Could not upload memcache statistics to cloudwatch..." + str((inst)))
+        return False
+
+    logging.info("Successfully logged memcache statistics to Cloudwatch!")
     return True
 
 def get_memcache_stats():
@@ -287,11 +329,8 @@ def get_memcache_stats():
                 cache_sizes.append(size[1])
 
             stats = list(zip(times, hits, misses, posts, num_items, cache_sizes))
-            # for stat in stats:
-            #      print(stat)
-            h, m = get_hits_and_misses_from_cloudwatch()
-            print(h)
-            print(m)
+
         except Exception as inst:
             logging.info("CloudWatch Metric Query Error - Could not get memcache statistics to cloudwatch..." + str(inst))
+            return None
         return stats

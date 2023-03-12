@@ -149,6 +149,11 @@ def config():
 #
 @manager_app.route("/monitor")
 def monitor():
+    # get num_active nodes for line chart from cloudwatch
+    num_nodes_stats = aws_helper.get_data_from_cloudwatch(Config.num_active_nodes, 30)
+    num_nodes_labels = [str(row[0]) for row in num_nodes_stats]
+    num_nodes = [row[1] for row in num_nodes_stats]
+
     # # Retrieve the metrics data for the last 30 minutes at 1-minute granularity
     graphing_data = aws_helper.get_memcache_stats()
     graph_labels = [str(row[0]) for row in graphing_data]
@@ -162,7 +167,6 @@ def monitor():
     # Extract the data for each metric
 
     # Create the data for the circular chart by fetching the required data from database
-    #ToDo: get num_active_nodes from cloudwatch
     active_nodes = manager_app_data["num_active_nodes"]
     inactive_nodes = 8 - active_nodes
     active_nodes_data = [i % active_nodes + 1 for i in range(active_nodes + inactive_nodes)]
@@ -172,6 +176,8 @@ def monitor():
     return render_template('monitor.html',
                            active_nodes_data=json.dumps(active_nodes_data),
                            active_nodes_labels=json.dumps(active_nodes_labels),
+                           num_nodes_labels= num_nodes_labels,
+                           num_nodes=num_nodes,
                            labels=graph_labels,
                            hit_rate_val=hit_rate_val,
                            miss_rate_val=miss_rate_val,
