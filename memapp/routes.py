@@ -132,6 +132,12 @@ def commit_update():
         new_posts_served = memcache_data['posts_served'] - previous_memcache_data['posts_served']
         new_cache_size = memcache_data['cache_size'] - previous_memcache_data['cache_size']
         new_items_in_cache = len(memcache) - previous_memcache_data['items_in_cache']
+        new_memcache_data = {
+            "hits": new_hits,
+            "misses": new_misses,
+            "posts_served": new_posts_served,
+            "cache_size": new_cache_size
+        }
 
         previous_memcache_data['hits'] = memcache_data['hits']
         previous_memcache_data['misses'] = memcache_data['misses']
@@ -139,11 +145,7 @@ def commit_update():
         previous_memcache_data['cache_size'] = memcache_data['cache_size']
         previous_memcache_data['items_in_cache'] = len(memcache)
 
-        aws_helper.put_data_to_cloudwatch(Config.hits, new_hits, unit=None)
-        aws_helper.put_data_to_cloudwatch(Config.misses, new_misses, unit=None)
-        aws_helper.put_data_to_cloudwatch(Config.num_posts_served, new_posts_served, unit=None)
-        aws_helper.put_data_to_cloudwatch(Config.size_items_in_Megabytes, new_cache_size, unit="Megabytes")
-        aws_helper.put_data_to_cloudwatch(Config.num_items_in_cache, new_items_in_cache, unit=None)
+        aws_helper.log_memcache_stats(new_items_in_cache, **new_memcache_data)
 
         logging.info("UPDATE: refreshed Cloudwatch with new memcache data")
 

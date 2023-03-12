@@ -153,3 +153,46 @@ def put_data_to_cloudwatch(metric_name, value, unit=None):
 
     logging.info("Successfully put metric data to Cloudwatch!")
     return True
+@mock_cloudwatch
+def log_memcache_stats(num_items, **stats):
+    try:
+            cloudwatch = boto3.client('cloudwatch', region_name=Config.AWS_REGION)
+            cloudwatch.put_metric_data(
+                MetricData=[
+                    {
+                        'MetricName': Config.hits,
+                        'Unit': 'None',
+                        'Timestamp': stats['timestamp'],
+                        'Value': stats['hits']
+                    },
+                    {
+                        'MetricName': Config.misses,
+                        'Unit': 'None',
+                        'Timestamp': stats['timestamp'],
+                        'Value': stats['misses']
+                    },
+                    {
+                        'MetricName': Config.num_posts_served,
+                        'Unit': 'None',
+                        'Timestamp': stats['timestamp'],
+                        'Value': stats['posts_served']
+                    },
+                    {
+                        'MetricName': Config.num_items_in_cache,
+                        'Unit': 'None',
+                        'Timestamp': stats['timestamp'],
+                        'Value': num_items
+                    },
+                    {
+                        'MetricName': Config.size_items_in_Megabytes,
+                        'Unit': 'Megabytes',
+                        'Timestamp': stats['timestamp'],
+                        'Value': stats['cache_size']
+                    },
+                ],
+                Namespace=Config.cloudwatch_namespace
+            )
+
+    except Exception as inst:
+        logging.info("CloudWatch Metric Update Error - Could not upload memcache statistics to cloudwatch..." + str(type(inst)))
+    return True
