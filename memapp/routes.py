@@ -3,11 +3,9 @@ import aws_helper
 from memapp import memapp, memcache, policy
 from flask import jsonify, request
 import threading
-from sqlalchemy.orm import sessionmaker
 from datetime import datetime
 import time
-from sqlalchemy import create_engine
-from memapp.models import MemcacheData
+
 import logging
 from frontend import frontend
 from frontend.models import MemcacheConfig
@@ -16,11 +14,6 @@ from config import Config
 # Logging setup
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
-
-# Connecting to the database
-engine = create_engine(Config.SQLALCHEMY_DATABASE_URI)
-Session = sessionmaker(bind=engine)
-session = Session()
 
 # Local Memcache Stats Data
 memcache_data = {

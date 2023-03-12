@@ -6,7 +6,6 @@ from base64 import b64encode
 from frontend.models import Image, MemcacheConfig
 from frontend import frontend, db
 from memapp import memapp
-from memapp.models import MemcacheData
 from flask import render_template, redirect, url_for, request, flash, jsonify
 from frontend.forms import SubmitButton, UploadForm, DisplayForm, MemcacheConfigForm
 
