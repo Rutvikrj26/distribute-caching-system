@@ -89,9 +89,6 @@ def monitor_hit_and_miss_rates():
         autoscaler_app_data['last_miss_total'] = miss_total
         autoscaler_app_data['last_hit_total'] = hit_total
 
-        # While we're threading, put num_active_nodes to Cloudwatch
-        aws_helper.put_data_to_cloudwatch(Config.num_active_nodes, autoscaler_app_data['num_active_nodes'], datetime.utcnow(), unit=None)
-
         autoscaler_app_data['last_miss_rate'] = autoscaler_app_data['miss_rate']
         autoscaler_app_data['miss_rate'] = miss_rate
         autoscaler_app_data['hit_rate'] = hit_rate
@@ -103,6 +100,10 @@ def monitor_hit_and_miss_rates():
             elif miss_rate < autoscaler_app_data['shrink_threshold'] and miss_rate < autoscaler_app_data['last_miss_rate']:
                 if autoscaler_app_data['num_active_nodes'] > 1:
                     shrink_node_pool()
+
+        # While we're threading, put num_active_nodes to Cloudwatch
+        aws_helper.put_data_to_cloudwatch(Config.num_active_nodes, autoscaler_app_data['num_active_nodes'],
+                                                  datetime.utcnow(), unit=None)
 
 
 def expand_node_pool(manual=False, node_delta=0):
