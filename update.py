@@ -1,4 +1,5 @@
 import paramiko
+from time import sleep
 
 # Define the IP addresses and run files for each instance
 instances = {
@@ -26,6 +27,7 @@ def run_command_on_instance(instance_ip, command):
     ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     ssh.connect(instance_ip, username=ssh_username, key_filename=private_key_path)
     stdin, stdout, stderr = ssh.exec_command(command)
+    sleep(2)
     ssh.close()
     return
 

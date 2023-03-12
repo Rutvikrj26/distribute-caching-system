@@ -8,6 +8,8 @@ from flask import request, jsonify
 from config import Config
 from autoscaler_app import autoscaler_app
 
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
 
 memapp_urls = [
     Config.MEMAPP_0_URL,
