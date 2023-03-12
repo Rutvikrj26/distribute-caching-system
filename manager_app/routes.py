@@ -147,20 +147,23 @@ def config():
 def monitor():
     # get num_active nodes for line chart from cloudwatch
     num_nodes_stats = aws_helper.get_data_from_cloudwatch(Config.num_active_nodes, 30)
-    num_nodes_labels = [str(row[0]) for row in num_nodes_stats]
-    num_nodes = [row[1] for row in num_nodes_stats]
+    num_nodes_labels, num_nodes = ([] for i in range(2))
+    for row in num_nodes_stats:
+        num_nodes_labels.append(str(row[0]))
+        num_nodes.append(row[1])
 
     # # Retrieve the metrics data for the last 30 minutes at 1-minute granularity
     graphing_data = aws_helper.get_memcache_stats()
-    graph_labels = [str(row[0]) for row in graphing_data]
-    num_items_val = [row[4] for row in graphing_data]
-    current_size_val = [row[5] for row in graphing_data]
-    gets_served_val = [(row[1] + row[2]) for row in graphing_data]
-    posts_served_val = [row[3] for row in graphing_data]
+    graph_labels, num_items_val, current_size_val, gets_served_val, posts_served_val = ([] for i in range(5))
+    for row in graphing_data:
+        graph_labels.append(str(row[0]))
+        gets_served_val.append(row[1] + row[2])
+        posts_served_val.append(row[3])
+        num_items_val.append(row[4])
+        current_size_val.append(row[5])
+
     miss_rate_val = [(0 if (row[1] + row[2] == 0) else (row[2] * 100 / (row[1] + row[2]))) for row in graphing_data]
     hit_rate_val = [(0 if (row[1] + row[2] == 0) else (row[1] * 100 / (row[1] + row[2]))) for row in graphing_data]
-
-    # Extract the data for each metric
 
     # Create the data for the circular chart by fetching the required data from database
     active_nodes = manager_app_data["num_active_nodes"]
