@@ -26,15 +26,11 @@ memapp_urls = [
 autoscaler_app_data = {
     'num_active_nodes': 1,
     'automatic': 1,
-    'miss_rate': 0.0,
-    'hit_rate': 0.0,
-    'last_miss_rate': 0.0,
-    'last_miss_total': 0,
-    'last_hit_total': 0,
     'expand_threshold': 0.8,
     'shrink_threshold': 0.2,
     'expand_multiplier': 2.0,
     'shrink_multiplier': 0.5,
+    'last_miss_rate': 0.0,
     'monitoring': False
 }
 
@@ -61,7 +57,7 @@ def configure_autoscaler():
             node_delta = manual_num_nodes - autoscaler_app_data['num_active_nodes']
             if node_delta < 0:
                 shrink_node_pool(manual=True, node_delta=abs(node_delta))
-            else:
+            elif node_delta > 0:
                 expand_node_pool(manual=True, node_delta=node_delta)
     except Exception:
         logging.info("ERROR! Could not configure autoscaler. Was request formatted properly??")
@@ -73,31 +69,23 @@ def configure_autoscaler():
 def monitor_hit_and_miss_rates():
     while True:
         logging.info("Starting 60 second sleep timer...")
-        logging.info(f"Miss rate = {autoscaler_app_data['miss_rate']}, hit_rate = {autoscaler_app_data['hit_rate']}, last_miss_rate = {autoscaler_app_data['last_miss_rate']}")
         time.sleep(60)
 
         # Get hits and misses from Cloudwatch
         hits, misses = aws_helper.get_hits_and_misses_from_cloudwatch()
-        miss_total = autoscaler_app_data['last_miss_total'] + misses
-        hit_total = autoscaler_app_data['last_hit_total'] + hits
-        if hit_total + miss_total == 0:
+        if hits + misses == 0:
             miss_rate = 0.0
-            hit_rate = 0.0
         else:
-            miss_rate = float(miss_total / (hit_total + miss_total))
-            hit_rate = float(1 - miss_rate)
-        autoscaler_app_data['last_miss_total'] = miss_total
-        autoscaler_app_data['last_hit_total'] = hit_total
+            miss_rate = float(misses / (hits + misses))
 
-        autoscaler_app_data['last_miss_rate'] = autoscaler_app_data['miss_rate']
-        autoscaler_app_data['miss_rate'] = miss_rate
-        autoscaler_app_data['hit_rate'] = hit_rate
+        last_miss_rate = autoscaler_app_data['last_miss_rate']
+        autoscaler_app_data['last_miss_rate'] = miss_rate
 
         if autoscaler_app_data['automatic'] == 1:
-            if miss_rate > autoscaler_app_data['expand_threshold'] and miss_rate > autoscaler_app_data['last_miss_rate']:
+            if miss_rate > autoscaler_app_data['expand_threshold'] and miss_rate > last_miss_rate:
                 if autoscaler_app_data['num_active_nodes'] < Config.MAX_NODES:
                     expand_node_pool()
-            elif miss_rate < autoscaler_app_data['shrink_threshold'] and miss_rate < autoscaler_app_data['last_miss_rate']:
+            elif miss_rate < autoscaler_app_data['shrink_threshold'] and miss_rate < last_miss_rate:
                 if autoscaler_app_data['num_active_nodes'] > 1:
                     shrink_node_pool()
 
@@ -205,5 +193,5 @@ def start_monitoring():
         logging.info("Monitoring thread already running!")
     else:
         thread.start()
-        autoscaler_app_data["commits_running"] = True
+        autoscaler_app_data["monitoring"] = True
         logging.info("Monitoring thread started successfully!")
