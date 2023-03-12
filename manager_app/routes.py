@@ -312,12 +312,14 @@ def start_logging():
 
     # start the logging thread on each of the memapp
 
-    for url in memapp_urls:
-        response = requests.post(url + "/start_logging")
-        jsonResponse = response.json()
-        if jsonResponse["status_code"] != 200:
-            logging.info("ERROR! Node returned invalid response when starting logging...")
-            return jsonify({"status": "failure", "status_code": 400})
+    # for url in memapp_urls:
+    url = memapp_urls[0]
+    logging.info(f"Starting logging on node at url: {url}")
+    response = requests.post(url + "/start_logging")
+    jsonResponse = response.json()
+    if jsonResponse["status_code"] != 200:
+        logging.info("ERROR! Node returned invalid response when starting logging...")
+        return jsonify({"status": "failure", "status_code": 400})
 
 
     return jsonify({"status": "success", "status_code": 200})
