@@ -80,13 +80,12 @@ def config():
                         'expand_multiplier': current_manager_config.expand_pool_ratio,
                         'shrink_multiplier': current_manager_config.shrink_pool_ratio
                     }
-    #                response = requests.post(Config.AUTOSCALER_APP_URL + "configure_autoscaler", data=autoscaler_data)
+                    response = requests.post(Config.AUTOSCALER_APP_URL + "configure_autoscaler", data=autoscaler_data)
                     print(autoscaler_data)
                     logging.info(f" Autoscaler Data : {autoscaler_data}")
-                    db.session.commit()
-                    # if response.status_code == 200:
-                    #     db.session.commit()
-                    #     flash("Successfully updated configuration.")
+                    if response.status_code == 200:
+                        db.session.commit()
+                        flash("Successfully updated configuration.")
                     return redirect(url_for('config'))
                 else:
                     flash("Cannot configure autoscaler parameters in manual mode.")
@@ -97,12 +96,11 @@ def config():
                     if manager_app_data['num_active_nodes'] < 8:
                         manager_app_data['num_active_nodes'] += 1
                         # TODO : Increase Pool Call Here
-                        # response = expand_node_pool(manual=True, node_delta=1)
+                        response = expand_node_pool(manual=True, node_delta=1)
                         current_manager_config.management_mode = form.management_mode.data
-                        # if response == 200:
-                        #     db.session.commit()
-                        #     flash(f"Successfully changed management mode to manual.")
-                        db.session.commit()
+                        if response == 200:
+                            db.session.commit()
+                            flash(f"Successfully changed management mode to manual.")
                         flash(f"Successfully increased pool size to {manager_app_data['num_active_nodes']}")
                     else:
                         flash("Pool size already at maximum.")
@@ -115,13 +113,11 @@ def config():
                 if int(form.management_mode.data) == 0:
                     if manager_app_data['num_active_nodes'] > 1:
                         manager_app_data['num_active_nodes'] -= 1
-                        # TODO : Decrease Pool Call Here
-                        # response = shrink_node_pool(manual=True, node_delta=1)
+                        response = shrink_node_pool(manual=True, node_delta=1)
                         current_manager_config.management_mode = form.management_mode.data
-                        # if response == 200:
-                        #     db.session.commit()
-                        #     flash(f"Successfully changed management mode to manual.")
-                        db.session.commit()
+                        if response == 200:
+                            db.session.commit()
+                            flash(f"Successfully changed management mode to manual.")
                         flash(f"Successfully decreased pool size to {manager_app_data['num_active_nodes']}")
                     else:
                         flash("Pool size already at minimum.")
@@ -312,14 +308,13 @@ def start_logging():
 
     # start the logging thread on each of the memapp
 
-    # for url in memapp_urls:
-    url = memapp_urls[0]
-    logging.info(f"Starting logging on node at url: {url}")
-    response = requests.post(url + "/start_logging")
-    jsonResponse = response.json()
-    if jsonResponse["status_code"] != 200:
-        logging.info("ERROR! Node returned invalid response when starting logging...")
-        return jsonify({"status": "failure", "status_code": 400})
+    for url in memapp_urls:
+        logging.info(f"Starting logging on node at url: {url}")
+        response = requests.post(url + "/start_logging")
+        jsonResponse = response.json()
+        if jsonResponse["status_code"] != 200:
+            logging.info("ERROR! Node returned invalid response when starting logging...")
+            return jsonify({"status": "failure", "status_code": 400})
 
 
     return jsonify({"status": "success", "status_code": 200})
