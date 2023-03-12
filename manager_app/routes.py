@@ -97,9 +97,8 @@ def config():
                         # TODO : Increase Pool Call Here
                         response = expand_node_pool(manual=True, node_delta=1)
                         current_manager_config.management_mode = form.management_mode.data
-                        if response == 200:
-                            db.session.commit()
-                            flash(f"Successfully changed management mode to manual.")
+                        db.session.commit()
+                        flash(f"Successfully changed management mode to manual.")
                         flash(f"Successfully increased pool size to {manager_app_data['num_active_nodes']}")
                     else:
                         flash("Pool size already at maximum.")
@@ -113,9 +112,8 @@ def config():
                     if manager_app_data['num_active_nodes'] > 1:
                         response = shrink_node_pool(manual=True, node_delta=1)
                         current_manager_config.management_mode = form.management_mode.data
-                        if response == 200:
-                            db.session.commit()
-                            flash(f"Successfully changed management mode to manual.")
+                        db.session.commit()
+                        flash(f"Successfully changed management mode to manual.")
                         flash(f"Successfully decreased pool size to {manager_app_data['num_active_nodes']}")
                     else:
                         flash("Pool size already at minimum.")
