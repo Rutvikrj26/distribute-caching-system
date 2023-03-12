@@ -27,9 +27,9 @@ def upload_fileobj(key, file_storage_object, bucket):
 def download_fileobj(key, bucket):
     try:
         logging.info("Attempting to download image from S3...")
-        my_file_storage = FileStorage()
+        # my_file_storage = FileStorage()
         s3 = boto3.client('s3')
-        s3.download_fileobj(bucket, key, my_file_storage)
+        my_file_storage = s3.download_fileobj(bucket, key)
     except Exception:
         logging.info("S3 Error - Could not download file object...")
         return None
