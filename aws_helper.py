@@ -69,7 +69,7 @@ def delete_all_from_s3():
 
 
 # @mock_cloudwatch
-# def get_hits_and_misses_from_cloudwatch(period_in_minutes=1):
+def get_hits_and_misses_from_cloudwatch(period_in_minutes=1):
     try:
         logging.info("Sending hit/miss get request to Cloudwatch...")
         cloudwatch = boto3.client('cloudwatch', region_name=Config.AWS_REGION)
