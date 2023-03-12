@@ -174,7 +174,7 @@ def get_data_from_cloudwatch(metric_name, period_in_minutes):
     times = []
     data = []
 
-    for row in HitsList:
+    for row in DataList:
         times.append(row[0])
         data.append(row[1])
 
