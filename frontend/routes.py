@@ -302,7 +302,7 @@ def start_update():
     else:
         # Tell memapp to start logging data every 5 seconds
         logging.info("Asking memcache to start logging data...")
-        response = requests.post(Config.MANAGER_APP_URL + "update_db")
+        response = requests.post(Config.MANAGER_APP_URL + "start_logging")
         if response.status_code == 200:
             logging.info("Memapp successfully logging to database!")
             flash("Update Thread Started!")

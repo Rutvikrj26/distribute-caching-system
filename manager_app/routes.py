@@ -1,3 +1,5 @@
+import threading
+
 import requests
 import logging
 import hashlib
@@ -48,6 +50,7 @@ def home():
 @manager_app.route("/config", methods=['GET', 'POST'])
 def config():
     logging.info("Accessed MANAGER CONFIGURATION page")
+
     with manager_app.app_context():
         current_manager_config = ManagerConfig.query.first()
         logging.info(f"Management Mode Automatic = {current_manager_config.management_mode}")
@@ -292,13 +295,6 @@ def refresh_configuration():
     return jsonify({"status": "success", "status_code": 200})
 
 
-@manager_app.route("/update_statistics", methods=['GET', 'POST'])
-def update_statistics():
-    # TODO: Pass information from frontend webpage about automatic/manual mode, grow/shrink multipliers, etc.
-    # TODO: Will probably have our manual updates here as well
-    pass
-
-
 @manager_app.route("/getNumNodes", methods=['GET', 'POST'])
 def get_num_nodes():
     numNodes = manager_app_data['num_active_nodes']
@@ -308,3 +304,20 @@ def get_num_nodes():
 @manager_app.route('/update_num_active_nodes', methods=['GET', 'POST'])
 def update_num_active_nodes():
     manager_app_data['num_active_nodes'] = int(request.form["numNodes"])
+
+# start the logging thread
+@manager_app.route('/start_logging', methods=['GET', 'POST'])
+def start_logging():
+    logging.info("Starting logging thread...")
+
+    # start the logging thread on each of the memapp
+
+    for url in memapp_urls:
+        response = requests.post(url + "/start_logging")
+        jsonResponse = response.json()
+        if jsonResponse["status_code"] != 200:
+            logging.info("ERROR! Node returned invalid response when starting logging...")
+            return jsonify({"status": "failure", "status_code": 400})
+
+
+    return jsonify({"status": "success", "status_code": 200})

@@ -140,7 +140,7 @@ def commit_update():
         logging.info("UPDATE: refreshed Cloudwatch with new memcache data")
 
 
-@memapp.route('/update_db', methods=['POST'])
+@memapp.route('/start_logging', methods=['POST'])
 def update():
     logging.info("Request received to start logging to database...")
     thread = threading.Thread(target=commit_update)
