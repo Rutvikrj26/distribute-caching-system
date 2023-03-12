@@ -6,6 +6,9 @@ from werkzeug.datastructures import FileStorage
 from s3_app import s3_app
 from flask import request, jsonify
 
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
+
 
 @s3_app.route("/", methods=['GET'])
 def index():
