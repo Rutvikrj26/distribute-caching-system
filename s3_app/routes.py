@@ -7,6 +7,11 @@ from s3_app import s3_app
 from flask import request, jsonify
 
 
+@s3_app.route("/", methods=['GET'])
+def index():
+    return jsonify({"status": "success", "status_code": 200})
+
+
 @s3_app.route('/download_image', methods=['GET', 'POST'])
 def download_image():
     logging.info("Getting image from S3...")
