@@ -184,7 +184,7 @@ def log_memcache_stats(num_items, **stats):
             )
 
     except Exception as inst:
-        logging.info("CloudWatch Metric Update Error - Could not upload memcache statistics to cloudwatch..." + str(type(inst)))
+        logging.info("CloudWatch Metric Update Error - Could not upload memcache statistics to cloudwatch..." + str((inst)))
     return True
 
 def get_memcache_stats():
