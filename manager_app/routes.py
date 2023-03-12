@@ -162,6 +162,14 @@ def monitor():
         num_items_val.append(row[4])
         current_size_val.append(row[5])
 
+    num_items_agg = [num_items_val[0]]
+    current_size_agg = [current_size_val[0]]
+    for i in range(1, 30):
+        num_items_sum = num_items_agg[i-1] + num_items_val[i]
+        num_items_agg.append(num_items_sum)
+        current_size_sum = current_size_agg[i-1] + current_size_val[i]
+        current_size_agg.append(current_size_sum)
+
     miss_rate_val = [(0 if (row[1] + row[2] == 0) else (row[2] * 100 / (row[1] + row[2]))) for row in graphing_data]
     hit_rate_val = [(0 if (row[1] + row[2] == 0) else (row[1] * 100 / (row[1] + row[2]))) for row in graphing_data]
 
@@ -182,8 +190,8 @@ def monitor():
                            miss_rate_val=miss_rate_val,
                            posts_served_val=posts_served_val,
                            gets_served_val=gets_served_val,
-                           num_items_val=num_items_val,
-                           current_size_val=current_size_val)
+                           num_items_val=num_items_agg,
+                           current_size_val=current_size_agg)
 
 
 
