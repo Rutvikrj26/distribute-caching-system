@@ -42,6 +42,7 @@ def upload():
             flash("File type is not allowed - please upload a PNG, JPEG, JPG, or GIF file.")
             return redirect(url_for('upload'))
 
+        b64string = b64encode(file.read()).decode("ASCII")
 
         # Store on S3
         response = requests.post(Config.S3_APP_URL + "upload_image",
@@ -76,7 +77,6 @@ def upload():
 
         # Store in cache
         try:
-            b64string = b64encode(file.read()).decode("ASCII")
             response = requests.post(Config.MANAGER_APP_URL + "/put", data={'key': key, 'value': b64string})
             jsonResponse = response.json()
             if jsonResponse["status_code"] == 200:
