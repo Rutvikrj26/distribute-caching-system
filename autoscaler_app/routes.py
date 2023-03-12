@@ -26,6 +26,8 @@ autoscaler_app_data = {
     'miss_rate': 0.0,
     'hit_rate': 0.0,
     'last_miss_rate': 0.0,
+    'last_miss_total': 0,
+    'last_hit_total': 0,
     'expand_threshold': 0.8,
     'shrink_threshold': 0.2,
     'expand_multiplier': 2.0,
@@ -73,8 +75,12 @@ def monitor_hit_and_miss_rates():
 
         # Get hits and misses from Cloudwatch
         hits, misses = aws_helper.get_hits_and_misses_from_cloudwatch()
-        miss_rate = float(misses / (hits + misses))
-        hit_rate = float(hits / (hits + misses))
+        miss_total = autoscaler_app_data['last_miss_total'] + misses
+        hit_total = autoscaler_app_data['last_hit_total'] + hits
+        miss_rate = float(miss_total / (hit_total + miss_total))
+        hit_rate = float(1 - miss_rate)
+        autoscaler_app_data['last_miss_total'] = miss_total
+        autoscaler_app_data['last_hit_total'] = hit_total
 
         # While we're threading, put num_active_nodes to Cloudwatch
         aws_helper.put_data_to_cloudwatch(Config.num_active_nodes, autoscaler_app_data['num_active_nodes'], unit=None)
