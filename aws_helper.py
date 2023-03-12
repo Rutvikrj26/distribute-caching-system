@@ -6,6 +6,9 @@ from werkzeug.datastructures import FileStorage
 from datetime import datetime, timedelta
 from operator import itemgetter
 
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
+
 
 # @mock_s3
 def upload_fileobj(key, file_storage_object, bucket):
