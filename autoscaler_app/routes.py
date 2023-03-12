@@ -109,9 +109,6 @@ def expand_node_pool(manual=False, node_delta=0):
         autoscaler_app_data['num_active_nodes'] = min(int(autoscaler_app_data['num_active_nodes'] * autoscaler_app_data['expand_multiplier']), Config.MAX_NODES)
     new_active_nodes = autoscaler_app_data['num_active_nodes']
 
-    # Send num_active_node update to frontend
-    requests.post(Config.FRONTEND_URL + "update_num_active_nodes", data={'old_active_nodes': old_active_nodes, 'new_active_nodes': new_active_nodes})
-
     # Write back keys to bigger node pool
     for key in key_value_dict.keys():
         value = key_value_dict[key]
@@ -128,6 +125,13 @@ def expand_node_pool(manual=False, node_delta=0):
         else:
             logging.info("FAIL!!! Received non-200 response from cache node")
 
+    # Send num_active_node update to frontend
+    requests.post(Config.FRONTEND_URL + "update_num_active_nodes",
+                  data={'old_active_nodes': old_active_nodes, 'new_active_nodes': new_active_nodes})
+    # Send num_active_node update to manager_app
+    requests.post(Config.MANAGER_APP_URL + "update_num_active_nodes",
+                  data={'numNodes': new_active_nodes})
+
 
 def shrink_node_pool(manual=False, node_delta=0):
     # First we call back all key/value pairs to be redistributed
@@ -139,10 +143,6 @@ def shrink_node_pool(manual=False, node_delta=0):
     else:
         autoscaler_app_data['num_active_nodes'] = max(int(autoscaler_app_data['num_active_nodes'] * autoscaler_app_data['shrink_multiplier']), 1)
     new_active_nodes = autoscaler_app_data['num_active_nodes']
-
-    # Send num_active_node update to frontend
-    requests.post(Config.FRONTEND_URL + "update_num_active_nodes",
-                  data={'old_active_nodes': old_active_nodes, 'new_active_nodes': new_active_nodes})
 
     # Write back keys to smaller node pool
     for key in key_value_dict.keys():
@@ -159,6 +159,13 @@ def shrink_node_pool(manual=False, node_delta=0):
             logging.info(f"Value with key = {key} too big for node at index = {node_index}")
         else:
             logging.info("FAIL!!! Received non-200 response from cache node")
+
+    # Send num_active_node update to frontend
+    requests.post(Config.FRONTEND_URL + "update_num_active_nodes",
+                  data={'old_active_nodes': old_active_nodes, 'new_active_nodes': new_active_nodes})
+    # Send num_active_node update to manager_app
+    requests.post(Config.MANAGER_APP_URL + "update_num_active_nodes",
+                  data={'numNodes': new_active_nodes})
 
 
 def get_all_key_value_pairs_from_nodes():
