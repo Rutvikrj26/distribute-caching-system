@@ -152,7 +152,7 @@ def display():
             frontend_data['update_active_nodes'] = False
             flash(f'SIZE OF CACHE POOL HAS CHANGED: from {frontend_data["old_active_nodes"]} to {frontend_data["new_active_nodes"]}')
         return render_template('display.html', title="ECE1779 - Group 25 - Display an Image", form=form,
-                               image_location=image_location)
+                               image_location=None)
 
     if frontend_data['update_active_nodes']:
         frontend_data['update_active_nodes'] = False
