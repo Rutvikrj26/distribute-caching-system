@@ -8,10 +8,6 @@
     {{ wtf.quick_form(form) }}
     <hr>
     {% if image_location %}
-        {% if from_cache %}
-            <img src="{{ image_location }}">
-        {% else %}
-             <img src="{{ url_for('static', filename=image_location) }}">
-        {% endif %}
+        <img src="{{ image_location }}">
     {% endif %}
 {% endblock %}

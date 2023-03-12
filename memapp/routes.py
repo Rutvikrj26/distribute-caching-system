@@ -123,6 +123,7 @@ def commit_update():
         new_cache_size = memcache_data['cache_size'] - previous_memcache_data['cache_size']
         new_items_in_cache = len(memcache) - previous_memcache_data['items_in_cache']
         new_memcache_data = {
+            "timestamp": datetime.utcnow(),
             "hits": new_hits,
             "misses": new_misses,
             "posts_served": new_posts_served,
