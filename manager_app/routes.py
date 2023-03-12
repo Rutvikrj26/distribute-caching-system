@@ -94,7 +94,6 @@ def config():
             elif form.grow_pool.data:  # manual mode pool expansion
                 if int(form.management_mode.data) == 0:
                     if manager_app_data['num_active_nodes'] < 8:
-                        manager_app_data['num_active_nodes'] += 1
                         # TODO : Increase Pool Call Here
                         response = expand_node_pool(manual=True, node_delta=1)
                         current_manager_config.management_mode = form.management_mode.data
@@ -112,7 +111,6 @@ def config():
             elif form.shrink_pool.data:
                 if int(form.management_mode.data) == 0:
                     if manager_app_data['num_active_nodes'] > 1:
-                        manager_app_data['num_active_nodes'] -= 1
                         response = shrink_node_pool(manual=True, node_delta=1)
                         current_manager_config.management_mode = form.management_mode.data
                         if response == 200:
