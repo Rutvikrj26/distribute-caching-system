@@ -1,6 +1,7 @@
 import requests
 import logging
 import hashlib
+import aws_helper
 from config import Config
 from frontend import frontend
 from frontend.models import MemcacheConfig
@@ -149,16 +150,15 @@ def config():
 #
 @manager_app.route("/monitor")
 def monitor():
-
-    # # Connect to the CloudWatch client
-    # cloudwatch = boto3.client('cloudwatch', region_name=Config.AWS_REGION)
-    #
     # # Retrieve the metrics data for the last 30 minutes at 1-minute granularity
-    # # TODO : Write the code for Metric Calls
-    # response = cloudwatch.get_metric_data(
-    #     MetricDataQueries=[]
-    # )
-    # get_hits_and_misses_from_cloudwatch
+    graphing_data = aws_helper.get_memcache_stats()
+    graph_labels = [str(row[0]) for row in graphing_data]
+    num_items_val = [row[4] for row in graphing_data]
+    current_size_val = [row[5] for row in graphing_data]
+    gets_served_val = [(row[1] + row[2]) for row in graphing_data]
+    posts_served_val = [row[3] for row in graphing_data]
+    miss_rate_val = [(0 if (row[1] + row[2] == 0) else (row[2] * 100 / (row[1] + row[2]))) for row in graphing_data]
+    hit_rate_val = [(0 if (row[1] + row[2] == 0) else (row[1] * 100 / (row[1] + row[2]))) for row in graphing_data]
 
     # Extract the data for each metric
 
@@ -171,12 +171,14 @@ def monitor():
     # Render the template with the data
     return render_template('monitor.html',
                            active_nodes_data=json.dumps(active_nodes_data),
-                           active_nodes_labels=json.dumps(active_nodes_labels))
-                           # miss_rate_data=json.dumps(),
-                           # hit_rate_data=json.dumps(),
-                           # num_items_data=json.dumps(),
-                           # size_items_data=json.dumps(),
-                           # num_requests_data=json.dumps())
+                           active_nodes_labels=json.dumps(active_nodes_labels),
+                           labels=graph_labels,
+                           hit_rate_val=hit_rate_val,
+                           miss_rate_val=miss_rate_val,
+                           posts_served_val=posts_served_val,
+                           gets_served_val=gets_served_val,
+                           num_items_val=num_items_val,
+                           current_size_val=current_size_val)
 
 
 
