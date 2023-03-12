@@ -13,7 +13,8 @@ db_name = "ece"
 app = Flask(__name__)
 
 # Set the RDS endpoint
-app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+mysqlconnector://' + db_username + ':' + db_password + '@' + rds_endpoint + '/' + db_name
+app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+mysqlconnector://' + db_username + ':' + db_password + '@' + rds_endpoint # + '/' + db_name
+print(app.config['SQLALCHEMY_DATABASE_URI'])
 
 # Create the SQLAlchemy database object
 db = SQLAlchemy(app)
