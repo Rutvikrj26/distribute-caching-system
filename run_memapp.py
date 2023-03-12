@@ -1,3 +1,3 @@
 from memapp import memapp
 
-memapp.run(port=5001, debug=True)
+memapp.run(host='0.0.0.0', port=5000, debug=False)
