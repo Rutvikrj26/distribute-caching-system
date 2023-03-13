@@ -361,7 +361,7 @@ def start_logging():
 @manager_app.route('/memcache_config', methods=['GET', 'POST'])
 def memcache_config():
     logging.info("Accessed MEMCACHE CONFIGURATION page")
-    response = requests.post(Config.MANAGER_APP_URL + 'get_all_keys')
+    response = get_all_keys()
     jsonResponse = response.json()
     keys = jsonResponse["keys"]
     keys = None if len(keys) == 0 else keys
@@ -384,7 +384,7 @@ def memcache_config():
             logging.info("ERROR! Bad response from manager: could not update cache pool with new memcache_config...")
             flash("ERROR! Not all nodes could update with new configuration information...")
         if form.clear_cache.data:
-            response = requests.post(Config.MANAGER_APP_URL + 'clearcache')
+            response = clearcache()
             if response.status_code == 200:
                 logging.info("Successfully deleted all entries from cache")
                 flash("Successfully deleted all key/value pairs from cache!")
