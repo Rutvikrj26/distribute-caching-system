@@ -362,7 +362,7 @@ def start_logging():
     return jsonify({"status": "success", "status_code": 200})
 
 # Switching from frontend to manager_app
-@frontend.route('/memcache_config', methods=['GET', 'POST'])
+@manager_app.route('/memcache_config', methods=['GET', 'POST'])
 def memcache_config():
     logging.info("Accessed MEMCACHE CONFIGURATION page")
     response = requests.post(Config.MANAGER_APP_URL + 'get_all_keys')
