@@ -104,10 +104,11 @@ def expand_node_pool(manual=False, node_delta=0):
     key_value_dict = get_all_key_value_pairs_from_nodes()
     old_active_nodes = autoscaler_app_data['num_active_nodes']
     # Next grow node pool according to multiplier
-    if manual:
+    if manual and autoscaler_app_data['num_active_nodes'] < Config.MAX_NODES:
         autoscaler_app_data['num_active_nodes'] += node_delta
     else:
         autoscaler_app_data['num_active_nodes'] = min(int(autoscaler_app_data['num_active_nodes'] * autoscaler_app_data['expand_multiplier']), Config.MAX_NODES)
+        autoscaler_app_data['num_active_nodes'] = max(autoscaler_app_data['num_active_nodes'], 1)
     new_active_nodes = autoscaler_app_data['num_active_nodes']
 
     # Write back keys to bigger node pool
@@ -139,10 +140,11 @@ def shrink_node_pool(manual=False, node_delta=0):
     key_value_dict = get_all_key_value_pairs_from_nodes()
     old_active_nodes = autoscaler_app_data['num_active_nodes']
     # Next shrink node pool according to multiplier
-    if manual:
+    if manual and autoscaler_app_data['num_active_nodes'] > 1:
         autoscaler_app_data['num_active_nodes'] -= node_delta
     else:
         autoscaler_app_data['num_active_nodes'] = max(int(autoscaler_app_data['num_active_nodes'] * autoscaler_app_data['shrink_multiplier']), 1)
+        autoscaler_app_data['num_active_nodes'] = min(autoscaler_app_data['num_active_nodes'], Config.MAX_NODES)
     new_active_nodes = autoscaler_app_data['num_active_nodes']
 
     # Write back keys to smaller node pool
