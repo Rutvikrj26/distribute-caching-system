@@ -103,6 +103,8 @@ def expand_node_pool(manual=False, node_delta=0):
     # First we call back all key/value pairs to be redistributed
     key_value_dict = get_all_key_value_pairs_from_nodes()
     old_active_nodes = autoscaler_app_data['num_active_nodes']
+    if manual:
+        autoscaler_app_data['automatic'] = 0
     # Next grow node pool according to multiplier
     if manual and autoscaler_app_data['num_active_nodes'] < Config.MAX_NODES:
         autoscaler_app_data['num_active_nodes'] += node_delta
@@ -139,6 +141,8 @@ def shrink_node_pool(manual=False, node_delta=0):
     # First we call back all key/value pairs to be redistributed
     key_value_dict = get_all_key_value_pairs_from_nodes()
     old_active_nodes = autoscaler_app_data['num_active_nodes']
+    if manual:
+        autoscaler_app_data['automatic'] = 0
     # Next shrink node pool according to multiplier
     if manual and autoscaler_app_data['num_active_nodes'] > 1:
         autoscaler_app_data['num_active_nodes'] -= node_delta
