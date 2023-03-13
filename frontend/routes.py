@@ -549,7 +549,7 @@ def api_configure_cache():
 @frontend.route('/api/getNumNodes', methods=['GET', 'POST'])
 def get_num_nodes():
     logging.info("API call to getNumNodes...")
-    response = requests.post(Config.MANAGER_APP_URL + "getNumNodes")
+    response = requests.post(Config.AUTOSCALER_APP_URL + "getNumNodes")
     jsonResponse = response.json()
     if jsonResponse["status_code"] == 200:
         numNodes = jsonResponse["numNodes"]

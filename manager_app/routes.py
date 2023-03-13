@@ -332,12 +332,6 @@ def configure_autoscaler():
     return jsonify({"status": "success", "status_code": 200})
 
 
-@manager_app.route("/getNumNodes", methods=['GET', 'POST'])
-def get_num_nodes():
-    numNodes = manager_app_data['num_active_nodes']
-    return jsonify({"status": "success", "status_code": 200, "numNodes": numNodes})
-
-
 @manager_app.route('/update_num_active_nodes', methods=['GET', 'POST'])
 def update_num_active_nodes():
     manager_app_data['num_active_nodes'] = int(request.form["numNodes"])

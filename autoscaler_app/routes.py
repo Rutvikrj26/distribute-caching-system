@@ -196,3 +196,9 @@ def start_monitoring():
         thread.start()
         autoscaler_app_data["monitoring"] = True
         logging.info("Monitoring thread started successfully!")
+
+
+@autoscaler_app.route("/getNumNodes", methods=['GET', 'POST'])
+def get_num_nodes():
+    numNodes = autoscaler_app_data['num_active_nodes']
+    return jsonify({"status": "success", "status_code": 200, "numNodes": numNodes})
