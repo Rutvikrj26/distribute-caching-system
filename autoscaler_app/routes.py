@@ -73,20 +73,24 @@ def monitor_hit_and_miss_rates():
         time.sleep(60)
 
         # Get hits and misses from Cloudwatch
+        logging.info("Getting hits and misses from Cloudwatch...")
         hits, misses = aws_helper.get_hits_and_misses_from_cloudwatch()
+        logging.info(f"hits = {hits}, misses = {misses}")
         if hits + misses == 0:
             miss_rate = 0.0
         else:
             miss_rate = float(misses / (hits + misses))
+        logging.info(f"Calculated miss rate as = {miss_rate}")
 
         last_miss_rate = autoscaler_app_data['last_miss_rate']
         autoscaler_app_data['last_miss_rate'] = miss_rate
 
+        logging.info(f"Are we automatic? Automatic = {autoscaler_app_data['automatic']}")
         if autoscaler_app_data['automatic'] == 1:
-            if miss_rate > autoscaler_app_data['expand_threshold'] and miss_rate > last_miss_rate:
+            if miss_rate > autoscaler_app_data['expand_threshold'] and miss_rate >= last_miss_rate:
                 if autoscaler_app_data['num_active_nodes'] < Config.MAX_NODES:
                     expand_node_pool()
-            elif miss_rate < autoscaler_app_data['shrink_threshold'] and miss_rate < last_miss_rate:
+            elif miss_rate < autoscaler_app_data['shrink_threshold'] and miss_rate <= last_miss_rate:
                 if autoscaler_app_data['num_active_nodes'] > 1:
                     shrink_node_pool()
 
