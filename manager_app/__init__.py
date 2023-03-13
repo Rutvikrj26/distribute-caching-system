@@ -18,7 +18,7 @@ with manager_app.app_context():
     db.create_all()
     # Creating the default config
     default_config = models.ManagerConfig()
-    initial_memcache_config = models.MemcacheConfig(id=1, isRandom=1, maxSize=2)
+    initial_memcache_config = models.MemcacheConfig()
     # adding the default config
     db.session.add(default_config)
     db.session.add(initial_memcache_config)

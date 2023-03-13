@@ -15,8 +15,8 @@ class ManagerConfig(db.Model):
 
 class MemcacheConfig(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    isRandom = db.Column(db.Integer)
-    maxSize = db.Column(db.Integer)
+    isRandom = db.Column(db.Integer, default=1)
+    maxSize = db.Column(db.Integer, default=2)
 
     def __repr__(self):
         return '<MemcacheConfig with ID: {0}>'.format(self.id)
