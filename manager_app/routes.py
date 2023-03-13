@@ -11,7 +11,7 @@ from manager_app import manager_app, db
 from flask import jsonify, request, render_template, flash, redirect, url_for
 from autoscaler_app.routes import expand_node_pool, shrink_node_pool
 
-from manager_app.forms import ManagerConfigForm
+from manager_app.forms import ManagerConfigForm, MemcacheConfigForm
 from manager_app.models import ManagerConfig
 import boto3
 import json
@@ -332,3 +332,43 @@ def start_logging():
 
 
     return jsonify({"status": "success", "status_code": 200})
+
+# Switching from frontend to manager_app
+@frontend.route('/memcache_config', methods=['GET', 'POST'])
+# TODO: I think this gets deleted and replaced with the UI from manager_app??
+def memcache_config():
+    logging.info("Accessed MEMCACHE CONFIGURATION page")
+    response = requests.post(Config.MANAGER_APP_URL + 'get_all_keys')
+    jsonResponse = response.json()
+    keys = jsonResponse["keys"]
+    keys = None if len(keys) == 0 else keys
+    with manager_app.app_context():
+        current_memcache_config = MemcacheConfig.query.first()
+        logging.info(f"isRandom = {current_memcache_config.isRandom}, maxSize = {current_memcache_config.maxSize}")
+    form = MemcacheConfigForm(policy=current_memcache_config.isRandom, capacity=current_memcache_config.maxSize)
+    if form.validate_on_submit():
+        with manager_app.app_context():
+            current_memcache_config = MemcacheConfig.query.first()
+            current_memcache_config.isRandom = form.policy.data
+            current_memcache_config.maxSize = form.capacity.data
+            db.session.commit()
+        response = refresh_configuration()
+        if response.status_code == 200:
+            logging.info(
+                f"Memcache configuration updated with isRandom = {form.policy.data} and maxSize = {form.capacity.data}")
+            flash("Successfully updated the memcache configuration!")
+        else:
+            logging.info("ERROR! Bad response from manager: could not update cache pool with new memcache_config...")
+            flash("ERROR! Not all nodes could update with new configuration information...")
+        if form.clear_cache.data:
+            response = requests.post(Config.MANAGER_APP_URL + 'clearcache')
+            if response.status_code == 200:
+                logging.info("Successfully deleted all entries from cache")
+                flash("Successfully deleted all key/value pairs from cache!")
+            else:
+                logging.info("FAIL!!! Could not delete from memcache")
+                flash("ERROR: Could not delete all key/value pairs from cache")
+        return redirect(url_for('memcache_config'))
+
+    return render_template('memcache_config.html', title="ECE1779 - Group 25 - Configure the memcache", form=form,
+                           keys=keys)

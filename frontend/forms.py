@@ -17,14 +17,6 @@ class DisplayForm(FlaskForm):
     submit = SubmitField('Submit')
 
 
-class MemcacheConfigForm(FlaskForm):
-    # Define the form here to change memcache configuration
-    policy = RadioField('Replacement Policy:', choices=[(1, 'Random Replacement'), (0, 'Least Recently Used')], validators=[DataRequired()])
-    capacity = IntegerField('Memcache capacity (in MB):', validators=[InputRequired()])
-    clear_cache = BooleanField('Clear All Keys from Cache?')
-    submit = SubmitField('Submit')
-
-
 class SubmitButton(FlaskForm):
     # Button to delete all images and keys from the program
     submit = SubmitField('Delete All Keys and Images')
