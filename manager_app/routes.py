@@ -361,9 +361,10 @@ def start_logging():
 @manager_app.route('/memcache_config', methods=['GET', 'POST'])
 def memcache_config():
     logging.info("Accessed MEMCACHE CONFIGURATION page")
-    response = requests.post(Config.MANAGER_APP_URL + 'get_all_keys')
-    jsonResponse = response.json()
-    keys = jsonResponse["keys"]
+    response = get_all_keys()
+    jsonresponse = json.loads(response.data)
+    logging.info(f"jsonresponse = {jsonresponse}")
+    keys = jsonresponse["keys"]
     keys = None if len(keys) == 0 else keys
     with manager_app.app_context():
         current_memcache_config = MemcacheConfig.query.first()
