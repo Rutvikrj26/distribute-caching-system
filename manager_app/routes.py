@@ -308,7 +308,7 @@ def refresh_configuration():
 def configure_autoscaler():
     logging.info("API CALL: Trying to configure autoscaler...")
     new_cache_size = request.form["cachesize"]
-    new_policy = request.files["policy"]
+    new_policy = request.form["policy"]
     logging.info(f"Received new_cache_size = {new_cache_size} and new_policy = {new_policy}")
     if new_cache_size != "None":
         manager_app_data["maxSize"] = int(new_cache_size)
