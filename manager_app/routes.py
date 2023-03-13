@@ -166,7 +166,7 @@ def monitor():
 
     num_items_agg = [num_items_val[0]]
     current_size_agg = [current_size_val[0]]
-    for i in range(1,(len(graphing_data)):
+    for i in range(1,(len(graphing_data))):
         num_items_sum = num_items_agg[i-1] + num_items_val[i]
         num_items_agg.append(num_items_sum)
         current_size_sum = current_size_agg[i-1] + current_size_val[i]
@@ -302,6 +302,7 @@ def refresh_configuration():
             logging.info(f"Successfully refreshed memcache_config on node {i}!")
         else:
             logging.info(f"ERROR! Node {i} failed to refresh its configuration...")
+            flash(f"ERROR! Node {i} failed to refresh its configuration...", "danger")
 
     return jsonify({"status": "success", "status_code": 200})
 
@@ -330,6 +331,15 @@ def configure_autoscaler():
     memcache_config_data.isRandom = manager_app_data["isRandom"]
     db.session.commit()
     logging.info("Successfully committed to MemcacheConfig RDS table...")
+
+    response = refresh_configuration()
+    if response.status_code == 200:
+        logging.info(
+            f"Memcache configuration updated with isRandom = {new_policy} and maxSize = {new_cache_size}")
+        flash("Successfully updated the memcache configuration!")
+    else:
+        logging.info("ERROR! Bad response from manager: could not update cache pool with new memcache_config...")
+        flash("ERROR! Not all nodes could update with new configuration information...")
 
     return jsonify({"status": "success", "status_code": 200})
 
