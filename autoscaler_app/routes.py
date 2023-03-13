@@ -217,8 +217,8 @@ def get_num_nodes():
     numNodes = autoscaler_app_data['num_active_nodes']
     return jsonify({"status": "success", "status_code": 200, "numNodes": numNodes})
 
-@autoscaler_app.route("/grow_pool_from_manager", methods=['GET', 'POST'])
-def grow_pool_from_manager():
+@autoscaler_app.route("/expand_pool_from_manager", methods=['GET', 'POST'])
+def expand_pool_from_manager():
     logging.info("Received request to grow pool from manager...")
     expand_node_pool(manual=True, node_delta=1)
     return jsonify({"status": "success", "status_code": 200})
