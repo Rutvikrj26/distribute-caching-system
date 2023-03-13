@@ -304,6 +304,25 @@ def refresh_configuration():
     return jsonify({"status": "success", "status_code": 200})
 
 
+@manager_app.route("/configure_autoscaler", methods=['GET', 'POST'])
+def configure_autoscaler():
+    new_cache_size = request.form["cachesize"]
+    new_policy = request.files["policy"]
+    if new_cache_size != "None":
+        manager_app_data["maxSize"] = int(new_cache_size)
+    if new_policy == "RR":
+        manager_app_data["isRandom"] = 1
+    elif new_policy == "LRU":
+        manager_app_data["isRandom"] = 0
+
+    memcache_config_data = MemcacheConfig.query.first()
+    memcache_config_data.maxSize = manager_app_data["maxSize"]
+    memcache_config_data.isRandom = manager_app_data["isRandom"]
+    db.session.commit()
+
+    return jsonify({"status": "success", "status_code": 200})
+
+
 @manager_app.route("/getNumNodes", methods=['GET', 'POST'])
 def get_num_nodes():
     numNodes = manager_app_data['num_active_nodes']
