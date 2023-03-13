@@ -9,12 +9,3 @@ class Image(db.Model):
 
     def __repr__(self):
         return '<Image with key: {0} and value: {1}>'.format(self.key, self.value)
-
-
-class MemcacheConfig(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    isRandom = db.Column(db.Integer)
-    maxSize = db.Column(db.Integer)
-
-    def __repr__(self):
-        return '<MemcacheConfig with ID: {0}>'.format(self.id)

@@ -13,3 +13,10 @@ class ManagerConfig(db.Model):
     def __repr__(self):
         return f"ManagerConfig(management_mode={self.management_mode}, max_miss_rate_threshold={self.max_miss_rate_threshold}, min_miss_rate_threshold={self.min_miss_rate_threshold}, expand_pool_ratio={self.expand_pool_ratio}, shrink_pool_ratio={self.shrink_pool_ratio}, manual_pool_size={self.manual_pool_size})"
 
+class MemcacheConfig(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    isRandom = db.Column(db.Integer)
+    maxSize = db.Column(db.Integer)
+
+    def __repr__(self):
+        return '<MemcacheConfig with ID: {0}>'.format(self.id)

@@ -3,11 +3,11 @@ import requests
 import aws_helper
 from config import Config
 from base64 import b64encode
-from frontend.models import Image, MemcacheConfig
+from frontend.models import Image
 from frontend import frontend, db
 from memapp import memapp
 from flask import render_template, redirect, url_for, request, flash, jsonify
-from frontend.forms import SubmitButton, UploadForm, DisplayForm, MemcacheConfigForm
+from frontend.forms import SubmitButton, UploadForm, DisplayForm
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -208,47 +208,47 @@ def show_delete_keys():
                            form=form, images=images)
 
 
-# TODO: I think this gets deleted and replaced with the UI from manager_app??
-@frontend.route('/memcache_stats', methods=['GET'])
-def memcache_stats():
-    logging.info("Accessed MEMCACHE STATISTICS page")
-
-    # First get current memcache configuration
-    current_memcache_config = MemcacheConfig.query.filter_by(id=1).first()
-    current_policy = "Random Replacement" if current_memcache_config.isRandom == 1 else "Least Recently Used"
-    max_size = current_memcache_config.maxSize
-
-    # Next get memcache statistics, populated by memcache
-    with memapp.app_context():
-        memcache_data = MemcacheData.query.order_by(MemcacheData.timestamp.desc()).first()
-        num_items = memcache_data.num_items
-        current_size = memcache_data.current_size
-        posts_served = memcache_data.posts_served
-        gets_served = memcache_data.misses + memcache_data.hits
-        miss_rate = 0 if (gets_served == 0) else (memcache_data.misses * 100 / gets_served)
-        hit_rate = 0 if (gets_served == 0) else (memcache_data.hits * 100 / gets_served)
-
-        graphing_data = (MemcacheData.query.order_by(MemcacheData.timestamp.desc()).limit(120))[::-1]
-        graph_labels = [str(row.timestamp) for row in graphing_data]
-        num_items_val = [row.num_items for row in graphing_data]
-        current_size_val = [row.current_size for row in graphing_data]
-        gets_served_val = [(row.hits + row.misses) for row in graphing_data]
-        posts_served_val = [row.posts_served for row in graphing_data]
-        miss_rate_val = [(0 if (row.hits + row.misses == 0) else (row.misses * 100 / (row.hits + row.misses))) for row
-                         in graphing_data]
-        hit_rate_val = [(0 if (row.hits + row.misses == 0) else (row.hits * 100 / (row.hits + row.misses))) for row in
-                        graphing_data]
-
-    if frontend_data['update_active_nodes']:
-        frontend_data['update_active_nodes'] = False
-        flash(f'SIZE OF CACHE POOL HAS CHANGED: from {frontend_data["old_active_nodes"]} to {frontend_data["new_active_nodes"]}')
-    return render_template('memcache_stats.html', title="ECE1779 - Group 25 - View memcache Statistics",
-                           max_size=max_size, num_items=num_items, current_size=current_size, gets_served=gets_served,
-                           posts_served=posts_served, miss_rate=miss_rate, hit_rate=hit_rate,
-                           current_policy=current_policy, labels=graph_labels, hit_rate_val=hit_rate_val,
-                           miss_rate_val=miss_rate_val, posts_served_val=posts_served_val,
-                           gets_served_val=gets_served_val,
-                           num_items_val=num_items_val, current_size_val=current_size_val)
+# # TODO: I think this gets deleted and replaced with the UI from manager_app??
+# @frontend.route('/memcache_stats', methods=['GET'])
+# def memcache_stats():
+#     logging.info("Accessed MEMCACHE STATISTICS page")
+#
+#     # First get current memcache configuration
+#     current_memcache_config = MemcacheConfig.query.filter_by(id=1).first()
+#     current_policy = "Random Replacement" if current_memcache_config.isRandom == 1 else "Least Recently Used"
+#     max_size = current_memcache_config.maxSize
+#
+#     # Next get memcache statistics, populated by memcache
+#     with memapp.app_context():
+#         memcache_data = MemcacheData.query.order_by(MemcacheData.timestamp.desc()).first()
+#         num_items = memcache_data.num_items
+#         current_size = memcache_data.current_size
+#         posts_served = memcache_data.posts_served
+#         gets_served = memcache_data.misses + memcache_data.hits
+#         miss_rate = 0 if (gets_served == 0) else (memcache_data.misses * 100 / gets_served)
+#         hit_rate = 0 if (gets_served == 0) else (memcache_data.hits * 100 / gets_served)
+#
+#         graphing_data = (MemcacheData.query.order_by(MemcacheData.timestamp.desc()).limit(120))[::-1]
+#         graph_labels = [str(row.timestamp) for row in graphing_data]
+#         num_items_val = [row.num_items for row in graphing_data]
+#         current_size_val = [row.current_size for row in graphing_data]
+#         gets_served_val = [(row.hits + row.misses) for row in graphing_data]
+#         posts_served_val = [row.posts_served for row in graphing_data]
+#         miss_rate_val = [(0 if (row.hits + row.misses == 0) else (row.misses * 100 / (row.hits + row.misses))) for row
+#                          in graphing_data]
+#         hit_rate_val = [(0 if (row.hits + row.misses == 0) else (row.hits * 100 / (row.hits + row.misses))) for row in
+#                         graphing_data]
+#
+#     if frontend_data['update_active_nodes']:
+#         frontend_data['update_active_nodes'] = False
+#         flash(f'SIZE OF CACHE POOL HAS CHANGED: from {frontend_data["old_active_nodes"]} to {frontend_data["new_active_nodes"]}')
+#     return render_template('memcache_stats.html', title="ECE1779 - Group 25 - View memcache Statistics",
+#                            max_size=max_size, num_items=num_items, current_size=current_size, gets_served=gets_served,
+#                            posts_served=posts_served, miss_rate=miss_rate, hit_rate=hit_rate,
+#                            current_policy=current_policy, labels=graph_labels, hit_rate_val=hit_rate_val,
+#                            miss_rate_val=miss_rate_val, posts_served_val=posts_served_val,
+#                            gets_served_val=gets_served_val,
+#                            num_items_val=num_items_val, current_size_val=current_size_val)
 
 
 # adding a Logging start Button

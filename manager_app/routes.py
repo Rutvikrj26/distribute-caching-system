@@ -6,7 +6,7 @@ import hashlib
 import aws_helper
 from config import Config
 from frontend import frontend
-from frontend.models import MemcacheConfig
+from manager_app.models import MemcacheConfig
 from manager_app import manager_app, db
 from flask import jsonify, request, render_template, flash, redirect, url_for
 from autoscaler_app.routes import expand_node_pool, shrink_node_pool
@@ -335,7 +335,6 @@ def start_logging():
 
 # Switching from frontend to manager_app
 @frontend.route('/memcache_config', methods=['GET', 'POST'])
-# TODO: I think this gets deleted and replaced with the UI from manager_app??
 def memcache_config():
     logging.info("Accessed MEMCACHE CONFIGURATION page")
     response = requests.post(Config.MANAGER_APP_URL + 'get_all_keys')
