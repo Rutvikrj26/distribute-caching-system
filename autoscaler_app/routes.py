@@ -38,20 +38,20 @@ autoscaler_app_data = {
 @autoscaler_app.route('/configure_autoscaler', methods=['GET', 'POST'])
 def configure_autoscaler():
     # try:
-    logging.info(request.form['expand_threshold'])
+    logging.info(request.form)
     if request.form['expand_threshold'] != "None":
         autoscaler_app_data['expand_threshold'] = float(request.form['expand_threshold'])
-    if request.form['shrink_threshold'] is not "None":
+    if request.form['shrink_threshold'] != "None":
         autoscaler_app_data['shrink_threshold'] = float(request.form['shrink_threshold'])
-    if request.form['expand_multiplier'] is not "None":
+    if request.form['expand_multiplier'] != "None":
         autoscaler_app_data['expand_multiplier'] = float(request.form['expand_multiplier'])
-    if request.form['shrink_multiplier'] is not "None":
+    if request.form['shrink_multiplier'] != "None":
         autoscaler_app_data['shrink_multiplier'] = float(request.form['shrink_multiplier'])
-    if request.form['mode'] is not "None":
+    if request.form['mode'] != "None":
         autoscaler_app_data['automatic'] = int(request.form['mode'])
 
     if autoscaler_app_data['automatic'] == 0:
-        if request.form['numNodes'] is not "None":
+        if request.form['numNodes'] != "None":
             manual_num_nodes = request.form['numNodes']
         else:
             manual_num_nodes = autoscaler_app_data['num_active_nodes']
