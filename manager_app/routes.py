@@ -362,7 +362,7 @@ def start_logging():
 def memcache_config():
     logging.info("Accessed MEMCACHE CONFIGURATION page")
     response = get_all_keys()
-    jsonresponse = response.json()
+    jsonresponse = json.loads(response.data)
     logging.info(f"jsonresponse = {jsonresponse}")
     keys = jsonresponse["keys"]
     keys = None if len(keys) == 0 else keys
