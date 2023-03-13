@@ -114,7 +114,9 @@ def commit_update():
     while True:
         logging.info("Starting 5 second sleep timer...")
         logging.info(f"isRandom = {memcache_data['isRandom']}, max_size = {memcache_data['max_size']}")
-        logging.info(f"num_items = {len(memcache)} ,cache_size = {memcache_data['cache_size']}")
+        logging.info(f"num_items = {len(list(memcache.keys()))} ,cache_size = {memcache_data['cache_size']}")
+        all_keys = list(memcache.keys())
+        logging.info(f"Keys are: {all_keys}")
         time.sleep(5)
 
         # Update all statistics now with Cloudwatch, not database
