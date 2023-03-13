@@ -402,7 +402,7 @@ def api_upload():
         # Check if the file type is valid
         if request_file.filename.split(".")[-1].strip() not in Config.ALLOWED_EXTENSIONS:
             logging.info("File type is not allowed - please upload a PNG, JPEG, JPG, or GIF file.")
-            return {"success": "false", "key": [request_key]}
+            return {"success": "false", "key": request_key}
 
         # Upload to database
         with frontend.app_context():
@@ -454,10 +454,10 @@ def api_upload():
 
     if db_success and memapp_success and s3_success:
         logging.info("Successfully uploaded the image to disk, database, and cache")
-        return {"success": "true", "key": [request_key]}
+        return {"success": "true", "key": request_key}
     else:
         logging.info("FAIL!!! Could not upload the image. See previous logs for cause.")
-        return {"key": [request_key], "success": "false"}
+        return {"key": request_key, "success": "false"}
 
 
 @frontend.route('/api/key/<string:key>', methods=['GET', 'POST'])
