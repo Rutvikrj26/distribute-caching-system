@@ -38,7 +38,8 @@ autoscaler_app_data = {
 @autoscaler_app.route('/configure_autoscaler', methods=['GET', 'POST'])
 def configure_autoscaler():
     # try:
-    if request.form['expand_threshold'] is not "None":
+    logging.info(request.form['expand_threshold'])
+    if request.form['expand_threshold'] != "None":
         autoscaler_app_data['expand_threshold'] = float(request.form['expand_threshold'])
     if request.form['shrink_threshold'] is not "None":
         autoscaler_app_data['shrink_threshold'] = float(request.form['shrink_threshold'])
