@@ -166,7 +166,7 @@ def monitor():
 
     num_items_agg = [num_items_val[0]]
     current_size_agg = [current_size_val[0]]
-    for i in range(1, 30):
+    for i in range(1,(len(graphing_data)):
         num_items_sum = num_items_agg[i-1] + num_items_val[i]
         num_items_agg.append(num_items_sum)
         current_size_sum = current_size_agg[i-1] + current_size_val[i]
@@ -361,8 +361,9 @@ def start_logging():
 @manager_app.route('/memcache_config', methods=['GET', 'POST'])
 def memcache_config():
     logging.info("Accessed MEMCACHE CONFIGURATION page")
-    jsonResponse = get_all_keys()
-    keys = jsonResponse.keys
+    response = requests.post(Config.MANAGER_APP_URL + 'get_all_keys')
+    jsonResponse = response.json()
+    keys = jsonResponse["keys"]
     keys = None if len(keys) == 0 else keys
     with manager_app.app_context():
         current_memcache_config = MemcacheConfig.query.first()
