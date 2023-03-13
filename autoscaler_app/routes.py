@@ -59,8 +59,8 @@ def configure_autoscaler():
                 shrink_node_pool(manual=True, node_delta=abs(node_delta))
             elif node_delta > 0:
                 expand_node_pool(manual=True, node_delta=node_delta)
-    except Exception:
-        logging.info("ERROR! Could not configure autoscaler. Was request formatted properly??")
+    except Exception as inst:
+        logging.info("ERROR! Could not configure autoscaler. Was request formatted properly??" + str(inst))
         return jsonify({"status": "failure", "status_code": 400})
     logging.info("Success! Autoscaler successfully reconfigured.")
     return jsonify({"status": "success", "status_code": 200})
