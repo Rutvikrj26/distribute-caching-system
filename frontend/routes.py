@@ -540,10 +540,10 @@ def api_configure_cache():
         logging.info("ERROR! FAiled to push configuration data to manager app...")
 
     if manager_success and autoscaler_success:
-        return jsonify({"success": "true", "mode": args["mode"], "numNodes": args["numNodes"], "cacheSize": args["cacheSize"], "policy": args["policy"]})
+        return jsonify({"success": "true", "mode": args["mode"], "numNodes": int(args["numNodes"]), "cacheSize": int(args["cacheSize"]), "policy": args["policy"]})
     else:
-        return jsonify({"success": "failure", "mode": args["mode"], "numNodes": args["numNodes"],
-                        "cacheSize": args["cacheSize"], "policy": args["policy"]})
+        return jsonify({"success": "failure", "mode": args["mode"], "numNodes": int(args["numNodes"]),
+                        "cacheSize": int(args["cacheSize"]), "policy": args["policy"]})
 
 
 @frontend.route('/api/getNumNodes', methods=['GET', 'POST'])
