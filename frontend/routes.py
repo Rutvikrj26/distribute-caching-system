@@ -454,8 +454,9 @@ def api_retrieval(key):
     return jsonify({"success": success, "key": key, "content": encoded_image})
 
 
-@frontend.route('/api/getRate/<string:rate>', methods=['GET', 'POST'])
-def api_get_rate(rate):
+@frontend.route('/api/getRate', methods=['GET', 'POST'])
+def api_get_rate():
+    args = request.args.to_dict()
     hits, misses = aws_helper.get_hits_and_misses_from_cloudwatch()
     if hits + misses == 0:
         miss_rate = 0.0
@@ -463,12 +464,12 @@ def api_get_rate(rate):
     else:
         miss_rate = float(misses / (hits + misses))
         hit_rate = 1 - miss_rate
-    if rate == "hit":
-        return jsonify({"success": "true", "rate": rate, "value": hit_rate})
-    elif rate == "miss":
-        return jsonify({"success": "true", "rate": rate, "value": miss_rate})
+    if args["rate"] == "hit":
+        return jsonify({"success": "true", "rate": args["rate"], "value": hit_rate})
+    elif args["rate"] == "miss":
+        return jsonify({"success": "true", "rate": args["rate"], "value": miss_rate})
     else:
-        return jsonify({"success": "failure", "rate": rate, "value": None})
+        return jsonify({"success": "failure", "rate": args["rate"], "value": None})
 
 
 @frontend.route('/api/configure_cache', methods=['GET', 'POST'])
