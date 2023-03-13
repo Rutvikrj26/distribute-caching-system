@@ -9,7 +9,6 @@ from frontend import frontend
 from manager_app.models import MemcacheConfig
 from manager_app import manager_app, db
 from flask import jsonify, request, render_template, flash, redirect, url_for
-from autoscaler_app.routes import expand_node_pool, shrink_node_pool
 
 from manager_app.forms import ManagerConfigForm, MemcacheConfigForm
 from manager_app.models import ManagerConfig
@@ -93,9 +92,11 @@ def config():
 
             elif form.grow_pool.data:  # manual mode pool expansion
                 if int(form.management_mode.data) == 0:
+                    # A Call to the Autoscaler Dictionary updating the mode.
+
                     if manager_app_data['num_active_nodes'] < 8:
-                        # TODO : Increase Pool Call Here
-                        response = expand_node_pool(manual=True, node_delta=1)
+                        # Expand node
+                        response = requests.post(Config.AUTOSCALER_APP_URL + "/expand_pool_from_manager")
                         current_manager_config.management_mode = form.management_mode.data
                         db.session.commit()
                         flash(f"Successfully changed management mode to manual.")
@@ -110,7 +111,8 @@ def config():
             elif form.shrink_pool.data:
                 if int(form.management_mode.data) == 0:
                     if manager_app_data['num_active_nodes'] > 1:
-                        response = shrink_node_pool(manual=True, node_delta=1)
+                        # Shrink node pool call
+                        response = requests.post(Config.AUTOSCALER_APP_URL + "/shrink_pool_from_manager")
                         current_manager_config.management_mode = form.management_mode.data
                         db.session.commit()
                         flash(f"Successfully changed management mode to manual.")

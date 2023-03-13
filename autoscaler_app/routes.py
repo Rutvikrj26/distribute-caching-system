@@ -98,7 +98,7 @@ def monitor_hit_and_miss_rates():
         aws_helper.put_data_to_cloudwatch(Config.num_active_nodes, autoscaler_app_data['num_active_nodes'],
                                                   datetime.utcnow(), unit=None)
 
-
+@autoscaler_app.route('/expand_node_pool', methods=['GET', 'POST'])
 def expand_node_pool(manual=False, node_delta=0):
     # First we call back all key/value pairs to be redistributed
     key_value_dict = get_all_key_value_pairs_from_nodes()
@@ -126,6 +126,8 @@ def expand_node_pool(manual=False, node_delta=0):
         else:
             logging.info("FAIL!!! Received non-200 response from cache node")
 
+    logging.info(f"Successfully expanded node pool from {old_active_nodes} to {new_active_nodes}")
+
     # Send num_active_node update to frontend
     requests.post(Config.FRONTEND_URL + "update_num_active_nodes",
                   data={'old_active_nodes': old_active_nodes, 'new_active_nodes': new_active_nodes})
@@ -133,7 +135,7 @@ def expand_node_pool(manual=False, node_delta=0):
     requests.post(Config.MANAGER_APP_URL + "update_num_active_nodes",
                   data={'numNodes': new_active_nodes})
 
-
+@autoscaler_app.route('/shrink_node_pool', methods=['GET', 'POST'])
 def shrink_node_pool(manual=False, node_delta=0):
     # First we call back all key/value pairs to be redistributed
     key_value_dict = get_all_key_value_pairs_from_nodes()
@@ -160,6 +162,8 @@ def shrink_node_pool(manual=False, node_delta=0):
             logging.info(f"Value with key = {key} too big for node at index = {node_index}")
         else:
             logging.info("FAIL!!! Received non-200 response from cache node")
+
+    logging.info(f"Successfully shrunk node pool from {old_active_nodes} to {new_active_nodes}")
 
     # Send num_active_node update to frontend
     requests.post(Config.FRONTEND_URL + "update_num_active_nodes",
@@ -206,3 +210,15 @@ def start_monitoring():
 def get_num_nodes():
     numNodes = autoscaler_app_data['num_active_nodes']
     return jsonify({"status": "success", "status_code": 200, "numNodes": numNodes})
+
+@autoscaler_app.route("/grow_pool_from_manager", methods=['GET', 'POST'])
+def grow_pool_from_manager():
+    logging.info("Received request to grow pool from manager...")
+    expand_node_pool(manual=True, node_delta=1)
+    return jsonify({"status": "success", "status_code": 200})
+
+@autoscaler_app.route("/shrink_pool_from_manager", methods=['GET', 'POST'])
+def shrink_pool_from_manager():
+    logging.info("Received request to shrink pool from manager...")
+    shrink_node_pool(manual=True, node_delta=1)
+    return jsonify({"status": "success", "status_code": 200})
