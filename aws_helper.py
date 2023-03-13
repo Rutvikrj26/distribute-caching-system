@@ -158,12 +158,12 @@ def get_data_from_cloudwatch(metric_name, period_in_minutes):
             EndTime=datetime.utcnow() - timedelta(seconds=0 * 60),
             MetricName=metric_name,
             Namespace=Config.cloudwatch_namespace,  # Unit='Percent',
-            Statistics=['Average'])
+            Statistics=['Maximum'])
         DataList = []
         for item in graphing_data["Datapoints"]:
-            Average = item["Average"]
+            Maximum = item['Maximum']
             Time = item['Timestamp']
-            Data = [Time, Average]
+            Data = [Time, Maximum]
             DataList.append(Data)
         DataList.sort(key=itemgetter(0))
 
