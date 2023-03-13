@@ -104,7 +104,7 @@ def get_hits_and_misses_from_cloudwatch(period_in_minutes=1):
             Misses = [Time, Sum]
             MissesList.append(Misses)
         MissesList.sort(key=itemgetter(0))
-    except Exception:
+    except Exception as inst:
         logging.info("CloudWatch Metric Query Error - Could not get memcache statistics to cloudwatch..." + str(inst))
         return None, None
 
@@ -118,9 +118,12 @@ def get_hits_and_misses_from_cloudwatch(period_in_minutes=1):
     for miss in MissesList:
         misses.append(miss[1])
 
-    logging.info("Successfully retrieved and parsed Cloudwatch metric data!")
-    return hits[-1], misses[-1]
-
+    if not hits or not misses:
+        logging.info("Cloudwatch metric data empty")
+        return 0, 0
+    else:
+        logging.info("Successfully retrieved and parsed Cloudwatch metric data!")
+        return hits[-1], misses[-1]
 
 # @mock_cloudwatch
 def put_data_to_cloudwatch(metric_name, value, timestamp, unit=None):
@@ -150,7 +153,7 @@ def put_data_to_cloudwatch(metric_name, value, timestamp, unit=None):
 # @mock_cloudwatch
 def get_data_from_cloudwatch(metric_name, period_in_minutes):
     try:
-        logging.info("Sending hit/miss get request to Cloudwatch...")
+        logging.info("Sending metric get request to Cloudwatch...")
         cloudwatch = boto3.client('cloudwatch', region_name=Config.AWS_REGION)
         graphing_data = cloudwatch.get_metric_statistics(
             Period=1 * 60,
@@ -158,12 +161,12 @@ def get_data_from_cloudwatch(metric_name, period_in_minutes):
             EndTime=datetime.utcnow() - timedelta(seconds=0 * 60),
             MetricName=metric_name,
             Namespace=Config.cloudwatch_namespace,  # Unit='Percent',
-            Statistics=['Maximum'])
+            Statistics=['Average'])
         DataList = []
         for item in graphing_data["Datapoints"]:
-            Maximum = item['Maximum']
+            Average = item['Average']
             Time = item['Timestamp']
-            Data = [Time, Maximum]
+            Data = [Time, Average]
             DataList.append(Data)
         DataList.sort(key=itemgetter(0))
 
