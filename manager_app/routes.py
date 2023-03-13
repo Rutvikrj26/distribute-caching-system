@@ -306,19 +306,28 @@ def refresh_configuration():
 
 @manager_app.route("/configure_autoscaler", methods=['GET', 'POST'])
 def configure_autoscaler():
+    logging.info("API CALL: Trying to configure autoscaler...")
     new_cache_size = request.form["cachesize"]
     new_policy = request.files["policy"]
+    logging.info(f"Received new_cache_size = {new_cache_size} and new_policy = {new_policy}")
     if new_cache_size != "None":
         manager_app_data["maxSize"] = int(new_cache_size)
+        logging.info(f"Logged maxSize as {manager_app_data['maxSize']}")
     if new_policy == "RR":
         manager_app_data["isRandom"] = 1
+        logging.info(f"Logged isRandom as {manager_app_data['isRandom']}")
     elif new_policy == "LRU":
         manager_app_data["isRandom"] = 0
+        logging.info(f"Logged isRandom as {manager_app_data['isRandom']}")
+    else:
+        logging.info(f"isRandom = {new_policy}, which is not RR or LRU...")
 
+    logging.info("Trying to push to MemcacheConfig RDS table...")
     memcache_config_data = MemcacheConfig.query.first()
     memcache_config_data.maxSize = manager_app_data["maxSize"]
     memcache_config_data.isRandom = manager_app_data["isRandom"]
     db.session.commit()
+    logging.info("Successfully committed to MemcacheConfig RDS table...")
 
     return jsonify({"status": "success", "status_code": 200})
 
