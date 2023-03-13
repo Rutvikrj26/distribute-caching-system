@@ -285,7 +285,7 @@ def clearcache():
 
 @manager_app.route('/refresh_config', methods=['POST'])
 def refresh_configuration():
-    with frontend.app_context():
+    with manager_app.app_context():
         logging.info("Updating configuration information...")
         memcache_config_data = MemcacheConfig.query.first()
         assert(memcache_config_data is not None)
