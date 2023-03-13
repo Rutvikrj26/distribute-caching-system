@@ -52,7 +52,7 @@ def configure_autoscaler():
 
     if autoscaler_app_data['automatic'] == 0:
         if request.form['numNodes'] != "None":
-            manual_num_nodes = request.form['numNodes']
+            manual_num_nodes = int(request.form['numNodes'])
         else:
             manual_num_nodes = autoscaler_app_data['num_active_nodes']
         node_delta = manual_num_nodes - autoscaler_app_data['num_active_nodes']
