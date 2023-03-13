@@ -457,7 +457,7 @@ def api_upload():
         return {"success": "true", "key": [request_key]}
     else:
         logging.info("FAIL!!! Could not upload the image. See previous logs for cause.")
-        return {"success": "false", "key": [request_key]}
+        return {"key": [request_key], "success": "false"}
 
 
 @frontend.route('/api/key/<string:key>', methods=['GET', 'POST'])
@@ -490,11 +490,11 @@ def api_retrieval(key):
         if jsonResponse['status_code'] != 200:
             logging.info("FAIL!!! Could not return the image to cache - S3 failure")
             return jsonify({"success": "false", "key": [key], "content": None})
-        b64string = jsonResponse['value']
+        encoded_image = jsonResponse['value']
         logging.info("Attempting to encode image to send as json...")
         success = 'true'
     logging.info("Successfully retrieved image")
-    return jsonify({"success": success, "key": [key], "content": b64string})
+    return jsonify({"success": success, "key": [key], "content": encoded_image})
 
 
 @frontend.route('/api/getRate/<string:rate>', methods=['GET', 'POST'])
