@@ -480,7 +480,7 @@ def api_retrieval(key):
         image = Image.query.filter_by(id=key).first()
         if image is None:
             logging.info("No image with this key in database. Invalid key!")
-            return jsonify({"success": "false", "key": [key], "content": None})
+            return jsonify({"success": "false", "key": key, "content": None})
         logging.info("Successfully found image in database")
         bucket = image.value
 
@@ -489,12 +489,12 @@ def api_retrieval(key):
         jsonResponse = response.json()
         if jsonResponse['status_code'] != 200:
             logging.info("FAIL!!! Could not return the image to cache - S3 failure")
-            return jsonify({"success": "false", "key": [key], "content": None})
+            return jsonify({"success": "false", "key": key, "content": None})
         encoded_image = jsonResponse['value']
         logging.info("Attempting to encode image to send as json...")
         success = 'true'
     logging.info("Successfully retrieved image")
-    return jsonify({"success": success, "key": [key], "content": encoded_image})
+    return jsonify({"success": success, "key": key, "content": encoded_image})
 
 
 @frontend.route('/api/getRate/<string:rate>', methods=['GET', 'POST'])
