@@ -518,31 +518,32 @@ def api_get_rate(rate):
 def api_configure_cache():
     logging.info("API call to configure_cache...")
     # These go to autoscaler
-    if 'mode' in request.form:
-        if request.form["mode"] == "auto":
+    args = request.args.to_dict()
+    if 'mode' in args:
+        if args["mode"] == "auto":
             mode = "1"
         else:
             mode = "0"
     else:
         mode = "None"
-    if 'numNodes' in request.form:
-        numNodes = request.form["numNodes"]
+    if 'numNodes' in args:
+        numNodes = args["numNodes"]
     else:
         numNodes = "None"
-    if "expRatio" in request.form:
-        expand_multiplier = request.form["expRatio"]
+    if "expRatio" in args:
+        expand_multiplier = args["expRatio"]
     else:
         expand_multiplier = "None"
-    if "shrinkRatio" in request.form:
-        shrink_multiplier = request.form["shrinkRatio"]
+    if "shrinkRatio" in args:
+        shrink_multiplier = args["shrinkRatio"]
     else:
         shrink_multiplier = "None"
-    if "maxMiss" in request.form:
-        expand_threshold = request.form["maxMiss"]
+    if "maxMiss" in args:
+        expand_threshold = args["maxMiss"]
     else:
         expand_threshold = "None"
-    if "minMiss" in request.form:
-        shrink_threshold = request.form["minMiss"]
+    if "minMiss" in args:
+        shrink_threshold = args["minMiss"]
     else:
         shrink_threshold = "None"
 
@@ -563,12 +564,12 @@ def api_configure_cache():
         autoscaler_success = False
         logging.info("ERROR! Failed to push configuration data to autoscaler...")
 
-    if 'cacheSize' in request.form:
-        cache_size = request.form["cacheSize"]
+    if 'cacheSize' in args:
+        cache_size = args["cacheSize"]
     else:
         cache_size = "None"
-    if 'policy' in request.form:
-        policy = request.form["policy"]
+    if 'policy' in args:
+        policy = args["policy"]
     else:
         policy = "None"
 
@@ -582,10 +583,10 @@ def api_configure_cache():
         logging.info("ERROR! FAiled to push configuration data to manager app...")
 
     if manager_success and autoscaler_success:
-        return jsonify({"success": "true", "mode": request.form["mode"], "numNodes": request.form["numNodes"], "cacheSize": request.form["cacheSize"], "policy": request.form["policy"]})
+        return jsonify({"success": "true", "mode": args["mode"], "numNodes": args["numNodes"], "cacheSize": args["cacheSize"], "policy": args["policy"]})
     else:
-        return jsonify({"success": "failure", "mode": request.form["mode"], "numNodes": request.form["numNodes"],
-                        "cacheSize": request.form["cacheSize"], "policy": request.form["policy"]})
+        return jsonify({"success": "failure", "mode": args["mode"], "numNodes": args["numNodes"],
+                        "cacheSize": args["cacheSize"], "policy": args["policy"]})
 
 
 @frontend.route('/api/getNumNodes', methods=['GET', 'POST'])
