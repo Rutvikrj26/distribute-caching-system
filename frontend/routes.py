@@ -499,15 +499,19 @@ def api_retrieval(key):
 
 @frontend.route('/api/getRate/<string:rate>', methods=['GET', 'POST'])
 def api_get_rate(rate):
-    hits, misses = aws_helper.get_hits_and_misses_from_cloudwatch(period_in_minutes=1)
-    if hits is None or misses is None:
-        return jsonify({"success": "false", "rate": rate, "value": None})
-    miss_rate = misses[0]
-    hit_rate = hits[0]
+    hits, misses = aws_helper.get_hits_and_misses_from_cloudwatch()
+    if hits + misses == 0:
+        miss_rate = 0.0
+        hit_rate = 0.0
+    else:
+        miss_rate = float(misses / (hits + misses))
+        hit_rate = 1 - miss_rate
     if rate == "hit":
         return jsonify({"success": "true", "rate": rate, "value": hit_rate})
-    else:
+    elif rate == "miss":
         return jsonify({"success": "true", "rate": rate, "value": miss_rate})
+    else:
+        return jsonify({"success": "failure", "rate": rate, "value": None})
 
 
 @frontend.route('/api/configure_cache', methods=['GET', 'POST'])
