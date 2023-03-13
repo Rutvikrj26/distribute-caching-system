@@ -450,7 +450,19 @@ def api_retrieval(key):
         encoded_image = jsonResponse['value']
         logging.info("Attempting to encode image to send as json...")
         success = 'true'
+
     logging.info("Successfully retrieved image")
+
+    # Store in cache
+    logging.info(f"Successfully retrieved b64string from s3_app for key = {key}")
+    response = requests.post(Config.MANAGER_APP_URL + "/put", data={'key': key, 'value': encoded_image})
+    jsonResponse = response.json()
+    if jsonResponse["status_code"] == 200:
+        logging.info("Successfully uploaded image to cache")
+    else:
+        logging.info("FAIL!!! Could not store image back into cache!")
+        flash("WARNING! Image is too big for the cache...")
+
     return jsonify({"success": success, "key": key, "content": encoded_image})
 
 

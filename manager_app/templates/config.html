@@ -13,8 +13,7 @@
             {{ wtf.quick_form(form)}}
 
             <br>
-            {#                <a href="{{ url_for('delete_app_data') }}" class="btn btn-danger">Delete Application Data</a>#}
-                <a href="{{ url_for('clearcache') }}" class="btn btn-secondary">Clear Cache</a>
+{#            <a href="{{ url_for('delete_app_data') }}" class="btn btn-danger">Delete Application Data</a>#}
 
             {% with messages = get_flashed_messages() %}
             {% if messages %}
