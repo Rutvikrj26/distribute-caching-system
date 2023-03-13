@@ -37,31 +37,31 @@ autoscaler_app_data = {
 
 @autoscaler_app.route('/configure_autoscaler', methods=['GET', 'POST'])
 def configure_autoscaler():
-    try:
-        if request.form['expand_threshold'] is not "None":
-            autoscaler_app_data['expand_threshold'] = float(request.form['expand_threshold'])
-        if request.form['shrink_threshold'] is not "None":
-            autoscaler_app_data['shrink_threshold'] = float(request.form['shrink_threshold'])
-        if request.form['expand_multiplier'] is not "None":
-            autoscaler_app_data['expand_multiplier'] = float(request.form['expand_multiplier'])
-        if request.form['shrink_multiplier'] is not "None":
-            autoscaler_app_data['shrink_multiplier'] = float(request.form['shrink_multiplier'])
-        if request.form['mode'] is not "None":
-            autoscaler_app_data['automatic'] = int(request.form['mode'])
+    # try:
+    if request.form['expand_threshold'] is not "None":
+        autoscaler_app_data['expand_threshold'] = float(request.form['expand_threshold'])
+    if request.form['shrink_threshold'] is not "None":
+        autoscaler_app_data['shrink_threshold'] = float(request.form['shrink_threshold'])
+    if request.form['expand_multiplier'] is not "None":
+        autoscaler_app_data['expand_multiplier'] = float(request.form['expand_multiplier'])
+    if request.form['shrink_multiplier'] is not "None":
+        autoscaler_app_data['shrink_multiplier'] = float(request.form['shrink_multiplier'])
+    if request.form['mode'] is not "None":
+        autoscaler_app_data['automatic'] = int(request.form['mode'])
 
-        if autoscaler_app_data['automatic'] == 0:
-            if request.form['numNodes'] is not None:
-                manual_num_nodes = request.form['numNodes']
-            else:
-                manual_num_nodes = autoscaler_app_data['num_active_nodes']
-            node_delta = manual_num_nodes - autoscaler_app_data['num_active_nodes']
-            if node_delta < 0:
-                shrink_node_pool(manual=True, node_delta=abs(node_delta))
-            elif node_delta > 0:
-                expand_node_pool(manual=True, node_delta=node_delta)
-    except Exception as inst:
-        logging.info("ERROR! Could not configure autoscaler. Was request formatted properly??" + str(inst))
-        return jsonify({"status": "failure", "status_code": 400})
+    if autoscaler_app_data['automatic'] == 0:
+        if request.form['numNodes'] is not "None":
+            manual_num_nodes = request.form['numNodes']
+        else:
+            manual_num_nodes = autoscaler_app_data['num_active_nodes']
+        node_delta = manual_num_nodes - autoscaler_app_data['num_active_nodes']
+        if node_delta < 0:
+            shrink_node_pool(manual=True, node_delta=abs(node_delta))
+        elif node_delta > 0:
+            expand_node_pool(manual=True, node_delta=node_delta)
+    # except Exception as inst:
+    #     logging.info("ERROR! Could not configure autoscaler. Was request formatted properly??" + str(inst))
+    #     return jsonify({"status": "failure", "status_code": 400})
     logging.info("Success! Autoscaler successfully reconfigured.")
     return jsonify({"status": "success", "status_code": 200})
 
