@@ -4,10 +4,10 @@ basedir = os.path.abspath(os.path.dirname(__file__))
 
 class Config(object):
     SECRET_KEY = os.environ.get('SECRET_KEY') or 'you-will-never-guess'
-    # SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or \
-    #   'mysql+pymysql://admin:i_am_from_beyond@ece.cgdahn06kt1q.us-east-2.rds.amazonaws.com:3306/ece'
     SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or \
-                              'mysql+pymysql://root:Gb2-mysql@localhost:3306/ece'
+      'mysql+pymysql://admin:i_am_from_beyond@ece.cgdahn06kt1q.us-east-2.rds.amazonaws.com:3306/ece'
+    # SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or \
+    #                           'mysql+pymysql://root:Gb2-mysql@localhost:3306/ece'
     # 'sqlite:///' + os.path.join(basedir, 'app.db')
 #        'mysql+pymysql://ece1779:ece1779@localhost/ece'
 
