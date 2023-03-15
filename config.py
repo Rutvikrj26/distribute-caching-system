@@ -24,18 +24,18 @@ class Config(object):
     MAX_NODES = 8
 
     # IP ADDRESSES
-    FRONTEND_URL = "http://3.139.103.194:5000/"
-    MANAGER_APP_URL = "http://3.139.103.194:5001/"
-    AUTOSCALER_APP_URL = "http://3.139.103.194:5002/"
-    S3_APP_URL = "http://3.139.103.194:5003/"
-    MEMAPP_0_URL = "http://3.145.153.213:5000/"
-    MEMAPP_1_URL = "http://3.145.7.90:5000/"
-    MEMAPP_2_URL = "http://3.142.135.104:5000/"
-    MEMAPP_3_URL = "http://3.12.107.84:5000/"
-    MEMAPP_4_URL = "http://18.118.207.236:5000/"
-    MEMAPP_5_URL = "http://3.15.223.27:5000/"
-    MEMAPP_6_URL = "http://18.188.246.106:5000/"
-    MEMAPP_7_URL = "http://18.224.69.57:5000/"
+    FRONTEND_URL = "http://3.135.219.79:5000/"
+    MANAGER_APP_URL = "http://3.135.219.79:5001/"
+    AUTOSCALER_APP_URL = "http://3.135.219.79:5002/"
+    S3_APP_URL = "http://3.135.219.79:5003/"
+    MEMAPP_0_URL = "http://3.22.81.223:5000/"
+    MEMAPP_1_URL = "http://18.189.141.115:5000/"
+    MEMAPP_2_URL = "http://3.144.108.20:5000/"
+    MEMAPP_3_URL = "http://3.144.3.115:5000/"
+    MEMAPP_4_URL = "http://18.222.112.185:5000/"
+    MEMAPP_5_URL = "http://3.145.85.161:5000/"
+    MEMAPP_6_URL = "http://18.223.106.46:5000/"
+    MEMAPP_7_URL = "http://52.15.122.5:5000/"
 
     # Cloudwatch metrics - use these, so we don't accidentally make doubles that cost $$$
     cloudwatch_namespace = 'ECE1779/Grp25'
