@@ -11,3 +11,14 @@ class Config(object):
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     UPLOAD_FOLDER = 'static'
     ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
+
+    AWS_REGION = 'us-east-1'
+    S3_BUCKET_NAME = "ece-a2"
+    # Cloudwatch metrics - use these, so we don't accidentally make doubles that cost $$$
+    cloudwatch_namespace = 'ECE1779/Grp25'
+    misses = 'misses'
+    hits = 'hits'
+    num_items_in_cache = 'number_of_items_in_cache'
+    size_items_in_Megabytes = 'cache_size'
+    num_active_nodes = 'num_active_nodes'
+    num_posts_served = 'posts_served'

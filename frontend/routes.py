@@ -1,8 +1,12 @@
+import io
 import os
 import logging
 import requests
+import aws_helper
+from werkzeug.datastructures import FileStorage
+
 from config import Config
-from base64 import b64encode
+from base64 import b64encode, b64decode
 from frontend.models import Image, MemcacheConfig
 from frontend import frontend, db
 from memapp import memapp
@@ -34,44 +38,37 @@ def upload():
     if form.validate_on_submit():
         key = form.key.data
         file = form.value.data
-        # Invalidate key in cache
-        requests.post(Config.MEMAPP_URL + "/invalidate_key", data={'key': key})
-        # Store on disk
-        try:
-            if "." in file.filename:
-                image_extension = file.filename.split(".")[-1].strip()
-            else:
-                image_extension = "png"
-            file_name = secure_filename(key) + "." + image_extension.lower()
-            file.save('frontend/static/' + file_name)
-            logging.info("Successfully saved image to disk")
-        except Exception:
-            logging.info("FAIL!!! Could not save image to disk")
-            flash("ERROR: Could not save the image to disk.")
+
+        # Check if the file type is valid
+        if file.filename.split(".")[-1].strip() not in Config.ALLOWED_EXTENSIONS:
+            flash("File type is not allowed - please upload a PNG, JPEG, JPG, or GIF file.")
             return redirect(url_for('upload'))
 
+        # Invalidate key in cache
+        requests.post(Config.MEMAPP_URL + "/invalidate_key", data={'key': key})
+
+        # Store on S3
+        logging.info("Uploading image to S3...")
+        b64string = b64encode(file.read()).decode("ASCII")
+        my_file_storage = FileStorage(io.BytesIO(b64decode(b64string.encode("ASCII"))))
+        upload_success = aws_helper.upload_fileobj(key, my_file_storage, Config.S3_BUCKET_NAME)
+        if not upload_success:
+            logging.info("ERROR! Failed to upload to S3...")
+        else:
+            logging.info("Successfully uploaded image to S3!")
+
         # Store in database
-        try:
-            with frontend.app_context():
-                # First, see if key already in database
-                image = Image.query.filter_by(id=key).first()
-                if image:
-                    db.session.delete(image)
-                    db.session.commit()
-                image = Image(id=key, value=file_name)
-                db.session.add(image)
-                db.session.commit()
-                logging.info("Successfully saved image to database")
-        except Exception:
-            logging.info("FAIL!!! Could not save image to database")
-            os.remove("frontend/static/"+file_name)
+        logging.info("Attempting to save key/bucket data to dynamodb...")
+        success = aws_helper.dynamo_add_image(key, Config.S3_BUCKET_NAME)
+        if success:
+            logging.info("Successfully saved image details to database")
+        else:
+            logging.info("FAIL!!! Could not save image details to database")
             flash("ERROR: Could not upload the image to the database.")
             return redirect(url_for('upload'))
 
         # Store in cache
         try:
-            with open("frontend/static/"+file_name, "rb") as image:
-                b64string = b64encode(image.read()).decode("ASCII")
             response = requests.post(Config.MEMAPP_URL+"/put", data={'key': key, 'value': b64string})
             jsonResponse = response.json()
             if jsonResponse["status_code"] == 200:
@@ -89,6 +86,7 @@ def upload():
 
     return render_template('upload.html', title="ECE1779 - Group 25 - Upload a Key-Value Pair", form=form)
 
+# TODO: Only upload route above has been switched over to S3 and DynamoDB - the rest is still to-do...
 
 # 1. Retrieval from disk WORKS
 # 2. Retrieval form memapp WORKS
