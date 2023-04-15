@@ -28,10 +28,18 @@
                     <li><a href="{{ url_for('memcache_config') }}">Configure MemCache</a></li>
                     <li><a href="{{ url_for('memcache_stats') }}">MemCache Statistics</a></li>
                 </ul>
+                <ul class="nav navbar-nav navbar-right">
+                    {% if current_user.is_authenticated %}
+                        <li><a href="{{ url_for('logout') }}">Log Out</a></li>
+                    {% else %}
+                        <li><a href="{{ url_for('login') }}">Log In</a></li>
+                    {% endif %}
+                </ul>
             </div>
         </div>
     </nav>
 {% endblock %}
+
 
 {% block content %}
     <div class="container">
