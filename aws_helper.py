@@ -33,11 +33,11 @@ def download_fileobj(key, bucket):
     return my_file_storage
 
 
-def delete_all_from_s3():
+def delete_all_from_s3(bucket):
     try:
         logging.info("Getting all keys from S3...")
         s3 = boto3.client('s3')
-        response = s3.list_objects_v2(Bucket=Config.S3_BUCKET_NAME)
+        response = s3.list_objects_v2(Bucket=bucket)
         images = response["Contents"]
     except Exception:
         logging.info("ERROR! Not able to get all keys from S3...")
@@ -46,7 +46,7 @@ def delete_all_from_s3():
         images_to_delete = []
         for image in images:
             images_to_delete.append({"Key": image["Key"]})
-        s3.delete_objects(Bucket=Config.S3_BUCKET_NAME, Delete={"Objects": images_to_delete})
+        s3.delete_objects(Bucket=bucket, Delete={"Objects": images_to_delete})
     except Exception:
         logging.info("ERROR! Not able to delete all objects from S3...")
         return False
@@ -244,7 +244,7 @@ def dynamo_get_images(bucket):
         table = dynamodb.Table('Images')
         response = table.query(KeyConditionExpression=Key('Bucket').eq(bucket))
         images = response['Items']
-        logging.info("Successfully retrived these images: " + str(images))
+        logging.info("Successfully retrieved these images: " + str(images))
     except Exception as inst:
         logging.info("Failed to get Images from table: " + str(inst))
         images = []
@@ -252,7 +252,7 @@ def dynamo_get_images(bucket):
     return images
 
 
-def delete_images_table():
+def dynamo_delete_images_table():
     try:
         dynamodb = boto3.client('dynamodb')
         dynamodb.delete_table(

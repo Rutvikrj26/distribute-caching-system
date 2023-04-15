@@ -8,10 +8,9 @@ from werkzeug.datastructures import FileStorage
 from config import Config
 from base64 import b64encode, b64decode
 from frontend.models import Image, MemcacheConfig
-from frontend import frontend, db
+from frontend import frontend
 from memapp import memapp
 from memapp.models import MemcacheData
-from werkzeug.utils import secure_filename
 from flask import render_template, redirect, url_for, request, flash, jsonify
 from frontend.forms import SubmitButton, UploadForm, DisplayForm, MemcacheConfigForm
 
@@ -86,7 +85,6 @@ def upload():
 
     return render_template('upload.html', title="ECE1779 - Group 25 - Upload a Key-Value Pair", form=form)
 
-# TODO: Only upload route above has been switched over to S3 and DynamoDB - the rest is still to-do...
 
 # 1. Retrieval from disk WORKS
 # 2. Retrieval form memapp WORKS
@@ -106,33 +104,43 @@ def display():
             b64string = jsonResponse['value']
             logging.info("Image retrieved from cache...")
             image_location = 'data:image/png;base64,' + b64string
-            from_cache = True
-        # Else, go to disk
+        # Else, go to S3
         else:
             logging.info("Image NOT in cache, going to disk...")
-            image = Image.query.filter_by(id=key).first()
-            if image is None:
+            image_keys = aws_helper.dynamo_get_images(Config.S3_BUCKET_NAME)
+            if image_keys is None or image_keys == []:
+                logging.info("FAIL!!! No images associated with this bucket...")
+                flash("Could not find an image associated with this key.")
+                return redirect(url_for('display'))
+            images = []
+            for image_key in image_keys:
+                my_file_storage = aws_helper.download_fileobj(image_key, Config.S3_BUCKET_NAME)
+                images.append(my_file_storage)
+            if len(images) == 0:
                 logging.info("FAIL!!! Image not in cache or on disk - BAD KEY")
                 flash("Could not find an image associated with this key.")
                 return redirect(url_for('display'))
             else:
-                logging.info("Image found on disk...")
-                image_location = image.value
-                from_cache = False
+                # TODO: We can show multiple images when we need to, but choosing just one to start
+                my_file_storage = images[0]
+                b64string = b64encode(my_file_storage.read()).decode("ASCII")
+                image_location = 'data:image/png;base64,' + b64string
             # Now need to store back in the cache!
-            logging.info(f"PUTting image with key = {key} into cache")
-            with open("frontend/static/"+image_location, "rb") as cache_image:
-                b64string = b64encode(cache_image.read()).decode("ASCII")
-            response = requests.post(Config.MEMAPP_URL+"/put", data={'key': key, 'value': b64string})
-            jsonResponse = response.json()
-            if jsonResponse["status_code"] == 200:
-                logging.info("Successfully uploaded image to cache")
-            else:
-                logging.info("FAIL!!! Could not store image back into cache!")
-                flash("WARNING! Image is too big for the cache...")
+            for i in range(0, len(images)):
+                key = image_keys[i]
+                image = images[i]
+                logging.info(f"PUTting image with key = {key} into cache")
+                b64string = b64encode(image.read()).decode("ASCII")
+                response = requests.post(Config.MEMAPP_URL+"/put", data={'key': key, 'value': b64string})
+                jsonResponse = response.json()
+                if jsonResponse["status_code"] == 200:
+                    logging.info("Successfully uploaded image to cache")
+                else:
+                    logging.info("FAIL!!! Could not store image back into cache!")
+                    flash("WARNING! Image is too big for the cache...")
         flash(f"Showing image for key = {key}")
         return render_template('display.html', title="ECE1779 - Group 25 - Display an Image", form=form,
-                               image_location=image_location, from_cache=from_cache)
+                               image_location=image_location)
     return render_template('display.html', title="ECE1779 - Group 25 - Display an Image",
                            form=form, image_location=None)
 
@@ -148,23 +156,28 @@ def show_delete_keys():
     images = Image.query.order_by(Image.timestamp.asc())
     if form.validate_on_submit():
         # First delete from database:
-        try:
-            for image in images:
-                db.session.delete(image)
-            db.session.commit()
-            logging.info("Successfully deleted key/image pairs from database")
-        except Exception:
-            logging.info("FAIL!!! Could not delete key/image pairs from database")
-            flash("WARNING: Could not delete key/image pairs from database")
+        logging.info("Deleting images table from DynamoDB...")
+        delete_success = aws_helper.dynamo_delete_images_table()
+        if delete_success:
+            logging.info("Table successfully deleted! Recreating...")
+            create_success = aws_helper.dynamo_create_image_table()
+            if create_success:
+                logging.info("Table successfully recreated!")
+            else:
+                logging.info("FAIL!!! Could not recreate the table...")
+                flash("WARNING: Could not recreate the DynamoDB images table...")
+        else:
+            logging.info("FAIL!!! Could not delete the DynamoDB images table...")
+            flash("WARNING: Could not delete the DynamoDB images table...")
 
         # Next, delete from disk:
-        try:
-            for file in os.listdir('frontend/static/'):
-                os.remove(os.path.join('frontend/static/', file))
-            logging.info("Successfully deleted key/image pairs from disk")
-        except Exception:
-            logging.info("FAIL!!! Could not delete key/image pairs from disk")
-            flash("WARNING: Could not delete key/image pairs from disk")
+        # TODO: Need to get all buckets from users table first and iterate
+        s3_delete_success = aws_helper.delete_all_from_s3(Config.S3_BUCKET_NAME)
+        if s3_delete_success:
+            logging.info(f"Successfully deleted all images from S3 with bucket = {Config.S3_BUCKET_NAME}")
+        else:
+            logging.info("FAIL!!! Could not delete key/image pairs from S3")
+            flash("WARNING: Could not delete key/image pairs from S3...")
 
         # Last, delete from cache
         try:
@@ -195,19 +208,14 @@ def memcache_config():
     jsonResponse = response.json()
     keys = jsonResponse["keys"]
     keys = None if len(keys) == 0 else keys
-    with frontend.app_context():
-        current_memcache_config = MemcacheConfig.query.first()
-        logging.info(f"isRandom = {current_memcache_config.isRandom}, maxSize = {current_memcache_config.maxSize}")
-    form = MemcacheConfigForm(policy=current_memcache_config.isRandom, capacity=current_memcache_config.maxSize)
+    # TODO: Need to get this data directly from memcache with a request
+    maxSize = 2
+    form = MemcacheConfigForm(capacity=maxSize)
     if form.validate_on_submit():
-        with frontend.app_context():
-            current_memcache_config = MemcacheConfig.query.first()
-            current_memcache_config.isRandom = form.policy.data
-            current_memcache_config.maxSize = form.capacity.data
-            db.session.commit()
+        # TODO: Need to send an update directly to memcache
         response = requests.post(Config.MEMAPP_URL+"/refresh_config")
         if response.status_code == 200:
-            logging.info(f"Memcache configuration updated with isRandom = {form.policy.data} and maxSize = {form.capacity.data}")
+            logging.info(f"Memcache configuration updated with maxSize = {form.capacity.data}")
             flash("Successfully updated the memcache configuration!")
         if form.clear_cache.data:
             response = requests.post(Config.MEMAPP_URL + 'clearcache')
@@ -221,8 +229,7 @@ def memcache_config():
     return render_template('memcache_config.html', title="ECE1779 - Group 25 - Configure the memcache", form=form, keys=keys)
 
 
-# Only temporary, need a way to get results in 5 second increments
-# Then, have to display a graph!
+# TODO: Do we still want this page? Does it have any use?
 @frontend.route('/memcache_stats', methods=['GET'])
 def memcache_stats():
     logging.info("Accessed MEMCACHE STATISTICS page")
@@ -266,17 +273,18 @@ def memcache_stats():
 def api_delete_all():
     logging.info("API call to DELETE_ALL")
     # First delete from database
-    try:
-        with frontend.app_context():
-            images = Image.query.order_by(Image.timestamp.asc())
-            for image in images:
-                db.session.delete(image)
-            db.session.commit()
-            db_success = True
-            logging.info("Successfully deleted all entries from database")
-    except Exception:
-        logging.info("FAIL!!! Could not delete from database")
-        db_success = False
+    logging.info("Deleting images table from DynamoDB...")
+    db_success = aws_helper.dynamo_delete_images_table()
+    if db_success:
+        logging.info("Table successfully deleted! Recreating...")
+        create_success = aws_helper.dynamo_create_image_table()
+        if create_success:
+            logging.info("Table successfully recreated!")
+        else:
+            logging.info("FAIL!!! Could not recreate the table...")
+    else:
+        create_success = False
+        logging.info("FAIL!!! Could not delete the DynamoDB images table...")
 
     # Next delete from memcache
     response = requests.post(Config.MEMAPP_URL + 'clearcache')
@@ -285,19 +293,16 @@ def api_delete_all():
     else:
         logging.info("FAIL!!! Could not delete from memcache")
 
-    # Also clear files from static/ directory
-    images = 'frontend/static/'
-    dir_success = True
-    for file in os.listdir(images):
-        try:
-            os.remove(os.path.join(images, file))
-        except OSError:
-            logging.info("FAIL!!! Could not delete from disk")
-            dir_success = False
-    logging.info("Successfully deleted all entries from disk")
+    # Also clear files from S3
+    # TODO: Need to iterate through all buckets
+    s3_delete_success = aws_helper.delete_all_from_s3(Config.S3_BUCKET_NAME)
+    if s3_delete_success:
+        logging.info(f"Successfully deleted all images from S3 with bucket = {Config.S3_BUCKET_NAME}")
+    else:
+        logging.info("FAIL!!! Could not delete key/image pairs from S3")
 
     # Verify that everything passed
-    if db_success and response.status_code == 200 and dir_success:
+    if db_success and create_success and response.status_code == 200 and s3_delete_success:
         logging.info("Successfully deleted all entries from database, cache, and disk")
         return jsonify({"success": "true"})
     else:
@@ -309,12 +314,8 @@ def api_delete_all():
 @frontend.route('/api/list_keys', methods=['POST'])
 def api_list_keys():
     logging.info("API call to LIST_KEYS")
-    try:
-        keys = Image.query(Image.id).order_by(Image.timestamp.asc()).all()
-        logging.info("Successfully retrieved keys from database")
-    except Exception:
-        logging.info("FAIL!!! Could not get list of keys from database. Returning empty list.")
-        keys = []
+    # TODO: Again, need to iterate over buckets
+    keys = aws_helper.dynamo_get_images(Config.S3_BUCKET_NAME)
     return jsonify({"success": "true", "keys": keys})
 
 
@@ -323,28 +324,24 @@ def api_list_keys():
 def api_upload():
     logging.info("API call to UPLOAD")
     memapp_success = False
+    request_key = request.form["key"]
+    request_file = request.files["file"]
     try:
-        request_key = request.form["key"]
-        request_file = request.files["file"]
         logging.info(f"Attempting to upload file {request_file.filename} with key {request_key}")
-        if "." in request_file.filename:
-            image_extension = request_file.filename.split(".")[-1].strip()
-        else:
-            image_extension = "png"
-        file_name = secure_filename(request_key) + "." + image_extension.lower()
-        logging.info(f"Attempting to save image with secure name {file_name}")
-        request_file.save('frontend/static/' + file_name)
-        logging.info(f"Image successfully saved to disk")
-        with frontend.app_context():
-            image = Image.query.filter_by(id=request_key).first()
-            if image:
-                db.session.delete(image)
-                db.session.commit()
-            image = Image(id=request_key, value=file_name)
-            db.session.add(image)
-            db.session.commit()
+
+        # Check if the file type is valid
+        if request_file.filename.split(".")[-1].strip() not in Config.ALLOWED_EXTENSIONS:
+            logging.info("File type is not allowed - please upload a PNG, JPEG, JPG, or GIF file.")
+            return {"success": "false", "key": request_key}
+
+        # Upload to database
+        success = aws_helper.dynamo_add_image(request_key, Config.S3_BUCKET_NAME)
+        if success:
             logging.info(f"Image successfully saved in database")
             db_success = True
+        else:
+            logging.info(f"Failed to save in database...")
+            db_success = False
     except Exception:
         db_success = False
 
@@ -353,8 +350,7 @@ def api_upload():
             logging.info(f"Invalidating key = {request_key} in memcache")
             requests.post(Config.MEMAPP_URL + "/invalidate_key", data={'key': request_key})
             logging.info(f"Attempting to convert file to string to save in memcache")
-            with open('frontend/static/'+file_name, "rb") as image:
-                b64string = b64encode(image.read()).decode("ASCII")
+            b64string = b64encode(request_file.read()).decode("ASCII")
             logging.info(f"Image successfully converted to string")
             response = requests.post(Config.MEMAPP_URL+"put", data={"key": request_key, "value": b64string})
             jsonResponse = response.json()
@@ -367,6 +363,15 @@ def api_upload():
             else:
                 logging.info("FAIL!!! Image could not be saved in cache!")
                 memapp_success = False
+
+            # Store on S3
+            my_file_storage = FileStorage(io.BytesIO(b64decode(b64string.encode("ASCII"))))
+            s3_success = aws_helper.upload_fileobj(request_key, my_file_storage, Config.S3_BUCKET_NAME)
+            if not s3_success:
+                logging.info("ERROR! Failed to upload to S3...")
+            else:
+                logging.info("Successfully uploaded image to S3!")
+
         except Exception:
             logging.info(f"FAIL!!! Failed to convert image to string or bad response from memapp")
             memapp_success = False
@@ -395,22 +400,26 @@ def api_retrieval(key):
     else:
         logging.info("Could not find image in cache. Retrieving from disk")
         in_cache = False
+        success = 'false'
+        encoded_image = None
     # Then check on disk:
     if not in_cache:
-        image = Image.query.filter_by(id=key).first()
-        if image is None:
-            logging.info("No image with this key in database. Invalid key!")
-            return jsonify({"success": "false", "key": [key], "content": None})
-        logging.info("Successfully found image in database")
-        image_location = "frontend/static/" + image.value
+        # TODO: Need to get bucket for user, but assume 1 bucket for now
+        image = aws_helper.download_fileobj(key, Config.S3_BUCKET_NAME)
+        if image is not None:
+            logging.info("Successfully found image on S3!")
+            success = 'true'
+        else:
+            logging.info("FAIL!!! Could not find image on S3...")
+            success = 'false'
         logging.info("Attempting to encode image to send as json...")
-        with open(image_location, 'rb') as image:
-            encoded_image = b64encode(image.read()).decode("ASCII")
+        encoded_image = b64encode(image.read()).decode("ASCII")
         logging.info("Successfully encoded image")
-        success = 'true'
+
     logging.info("Successfully retrieved image")
     return jsonify({"success": success, "key": [key], "content": encoded_image})
 
+# TODO: Will we need this?
 # adding a Logging start Button 
 @frontend.route('/start_update', methods=['GET', 'POST'])
 def start_update():
