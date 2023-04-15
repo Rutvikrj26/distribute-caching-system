@@ -5,22 +5,15 @@
     <hr>
     <h1>MemCache Statistics</h1>
     <hr>
-    <p>Current Replacement Policy: <b>{{ current_policy }}</b></p>
-    <hr>
-    <p>Maximum Cache Size (in MB): {{ max_size }}</p>
-    <hr>
-    <p>Number of Items Currently in Cache: {{ num_items }}</p>
-    <hr>
-    <p>Total Size of Items Currently in Cache: {{ current_size }}</p>
-    <hr>
-    <p>Total GET Requests Served: {{ gets_served }}</p>
-    <hr>
-    <p>Total POST Requests Served: {{ posts_served }}</p>
-    <hr>
-    <p>Current Cache Hit Rate: {{ hit_rate }}</p>
-    <hr>
-    <p>Current Cache Miss Rate: {{ miss_rate }}</p>
-    <hr>
+{#    <p>Current Replacement Policy: <b>{{ current_policy }}</b></p>#}
+{#    <hr>#}
+{#    <p>Maximum Cache Size (in MB): {{ max_size }}</p>#}
+{#    <hr>#}
+{#    <p>Number of Items Currently in Cache: {{ num_items }}</p>#}
+{#    <hr>#}
+{#    <p>Total Size of Items Currently in Cache: {{ current_size }}</p>#}
+{#    <hr>#}
+
     <script src="https://cdn.jsdelivr.net/npm/chart.js@2.9.4/dist/Chart.min.js"></script>
     <div>
         <canvas id="lineChart1" width="900" height="400"></canvas>

@@ -229,42 +229,43 @@ def memcache_config():
 
 
 # TODO: Do we still want this page? Does it have any use?
+# GB: We can call it "developer dashboard" and can use it to monitor the number of requests etc.
+#     Also can use it to show that our cache size grows/shrinks based on miss rate.
 @frontend.route('/memcache_stats', methods=['GET'])
 def memcache_stats():
     logging.info("Accessed MEMCACHE STATISTICS page")
+    num_nodes_stats = aws_helper.get_data_from_cloudwatch(Config.num_active_nodes, 30)
+    logging.info("Got last 30 min. stats from CloudWatch")
+    num_nodes_labels, num_nodes = ([] for i in range(2))
+    for row in num_nodes_stats:
+        num_nodes_labels.append(str(row[0]))
+        num_nodes.append(row[1])
 
-    # First get current memcache configuration
-    current_memcache_config = MemcacheConfig.query.filter_by(id=1).first()
-    current_policy = "Random Replacement" if current_memcache_config.isRandom == 1 else "Least Recently Used"
-    max_size = current_memcache_config.maxSize
+    # # Retrieve the metrics data for the last 30 minutes at 1-minute granularity
+    graphing_data = aws_helper.get_memcache_stats()
+    graph_labels, num_items_val, current_size_val, gets_served_val, posts_served_val = ([] for i in range(5))
+    for row in graphing_data:
+        graph_labels.append(str(row[0]))
+        gets_served_val.append(row[1] + row[2])
+        posts_served_val.append(row[3])
+        num_items_val.append(row[4])
+        current_size_val.append(row[5])
 
-    # Next get memcache statistics, populated by memcache
-    with memapp.app_context():
-        memcache_data = MemcacheData.query.order_by(MemcacheData.timestamp.desc()).first()
-        num_items = memcache_data.num_items
-        current_size = memcache_data.current_size
-        posts_served = memcache_data.posts_served
-        gets_served = memcache_data.misses + memcache_data.hits
-        miss_rate = 0 if (gets_served == 0) else (memcache_data.misses * 100 / gets_served)
-        hit_rate = 0 if (gets_served == 0) else (memcache_data.hits * 100 / gets_served)
+    num_items_agg = [num_items_val[0]]
+    current_size_agg = [current_size_val[0]]
+    for i in range(1, (len(graphing_data))):
+        num_items_sum = num_items_agg[i - 1] + num_items_val[i]
+        num_items_agg.append(num_items_sum)
+        current_size_sum = current_size_agg[i - 1] + current_size_val[i]
+        current_size_agg.append(current_size_sum)
 
-
-        graphing_data = (MemcacheData.query.order_by(MemcacheData.timestamp.desc()).limit(120))[::-1]
-        graph_labels = [str(row.timestamp) for row in graphing_data]
-        num_items_val = [row.num_items for row in graphing_data]
-        current_size_val = [row.current_size for row in graphing_data]
-        gets_served_val = [(row.hits + row.misses) for row in graphing_data]
-        posts_served_val = [row.posts_served for row in graphing_data]
-        miss_rate_val = [( 0 if (row.hits + row.misses == 0) else (row.misses * 100 / (row.hits + row.misses))) for row in graphing_data]
-        hit_rate_val = [( 0 if (row.hits + row.misses == 0) else (row.hits * 100 / (row.hits + row.misses))) for row in graphing_data]
-
+    miss_rate_val = [(0 if (row[1] + row[2] == 0) else (row[2] * 100 / (row[1] + row[2]))) for row in graphing_data]
+    hit_rate_val = [(0 if (row[1] + row[2] == 0) else (row[1] * 100 / (row[1] + row[2]))) for row in graphing_data]
 
     return render_template('memcache_stats.html', title="ECE1779 - Group 25 - View memcache Statistics",
-                           max_size=max_size, num_items=num_items, current_size=current_size, gets_served=gets_served,
-                           posts_served=posts_served, miss_rate=miss_rate, hit_rate=hit_rate,
-                           current_policy=current_policy, labels=graph_labels, hit_rate_val=hit_rate_val,
-                           miss_rate_val=miss_rate_val, posts_served_val=posts_served_val, gets_served_val=gets_served_val,
-                           num_items_val=num_items_val, current_size_val=current_size_val)
+                               labels=graph_labels, hit_rate_val=hit_rate_val,
+                               miss_rate_val=miss_rate_val, posts_served_val=posts_served_val, gets_served_val=gets_served_val,
+                               num_items_val=num_items_agg, current_size_val=current_size_agg)
 
 
 # Endpoint Tested : OK

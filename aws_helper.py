@@ -132,6 +132,40 @@ def get_hits_and_misses_from_cloudwatch(period_in_minutes=1):
         logging.info("Successfully retrieved and parsed Cloudwatch metric data!")
         return hits[-1], misses[-1]
 
+def get_data_from_cloudwatch(metric_name, period_in_minutes):
+    try:
+        logging.info("Sending metric get request to Cloudwatch...")
+        cloudwatch = boto3.client('cloudwatch', region_name=Config.AWS_REGION)
+        graphing_data = cloudwatch.get_metric_statistics(
+            Period=1 * 60,
+            StartTime=datetime.utcnow() - timedelta(seconds=period_in_minutes * 60),
+            EndTime=datetime.utcnow() - timedelta(seconds=0 * 60),
+            MetricName=metric_name,
+            Namespace=Config.cloudwatch_namespace,  # Unit='Percent',
+            Statistics=['Average'])
+        DataList = []
+        for item in graphing_data["Datapoints"]:
+            Average = item['Average']
+            Time = item['Timestamp']
+            Data = [Time, Average]
+            DataList.append(Data)
+        DataList.sort(key=itemgetter(0))
+
+    except Exception:
+        logging.info("CloudWatch Metric Query Error - Could not get memcache data from cloudwatch..." + str(inst))
+        return None
+
+    times = []
+    data = []
+
+    for row in DataList:
+        times.append(row[0])
+        data.append(row[1])
+
+    stats = list(zip(times, data))
+
+    logging.info("Successfully retrieved and parsed Cloudwatch metric data!")
+    return stats
 
 def log_memcache_stats(num_items, **stats):
     try:
@@ -179,6 +213,110 @@ def log_memcache_stats(num_items, **stats):
     logging.info("Successfully logged memcache statistics to Cloudwatch!")
     return True
 
+def get_memcache_stats():
+    try:
+        cloudwatch = boto3.client('cloudwatch', region_name=Config.AWS_REGION)
+        graphing_data_hits = cloudwatch.get_metric_statistics(
+            Period=1 * 60,
+            StartTime=datetime.utcnow() - timedelta(seconds=30 * 60),
+            EndTime=datetime.utcnow() - timedelta(seconds=0 * 60),
+            MetricName=Config.hits,
+            Namespace=Config.cloudwatch_namespace,  # Unit='Percent',
+            Statistics=['Sum'])
+        HitsList = []
+        for item in graphing_data_hits["Datapoints"]:
+            Sum = item["Sum"]
+            Time = item['Timestamp']
+            Hits = [Time, Sum]
+            HitsList.append(Hits)
+        HitsList.sort(key=itemgetter(0))
+
+        graphing_data_misses = cloudwatch.get_metric_statistics(
+            Period=1 * 60,
+            StartTime=datetime.utcnow() - timedelta(seconds=30 * 60),
+            EndTime=datetime.utcnow() - timedelta(seconds=0 * 60),
+            MetricName=Config.misses,
+            Namespace=Config.cloudwatch_namespace,  # Unit='Percent',
+            Statistics=['Sum'])
+        MissesList = []
+        for item in graphing_data_misses["Datapoints"]:
+            Sum = item["Sum"]
+            Time = item['Timestamp']
+            Misses = [Time, Sum]
+            MissesList.append(Misses)
+        MissesList.sort(key=itemgetter(0))
+
+        graphing_data_posts_served = cloudwatch.get_metric_statistics(
+            Period=1 * 60,
+            StartTime=datetime.utcnow() - timedelta(seconds=30 * 60),
+            EndTime=datetime.utcnow() - timedelta(seconds=0 * 60),
+            MetricName=Config.num_posts_served,
+            Namespace=Config.cloudwatch_namespace,  # Unit='Percent',
+            Statistics=['Sum'])
+        NumPostsList = []
+        for item in graphing_data_posts_served["Datapoints"]:
+            Sum = item["Sum"]
+            Time = item['Timestamp']
+            NumPosts = [Time, Sum]
+            NumPostsList.append(NumPosts)
+        NumPostsList.sort(key=itemgetter(0))
+
+        graphing_data_num_items = cloudwatch.get_metric_statistics(
+            Period=1 * 60,
+            StartTime=datetime.utcnow() - timedelta(seconds=30 * 60),
+            EndTime=datetime.utcnow() - timedelta(seconds=0 * 60),
+            MetricName=Config.num_items_in_cache,
+            Namespace=Config.cloudwatch_namespace,  # Unit='Percent',
+            Statistics=['Sum'])
+        NumItemsList = []
+        for item in graphing_data_num_items["Datapoints"]:
+            Sum = item["Sum"]
+            Time = item['Timestamp']
+            NumItems = [Time, Sum]
+            NumItemsList.append(NumItems)
+        NumItemsList.sort(key=itemgetter(0))
+
+        graphing_data_cache_size = cloudwatch.get_metric_statistics(
+            Period=1 * 60,
+            StartTime=datetime.utcnow() - timedelta(seconds=30 * 60),
+            EndTime=datetime.utcnow() - timedelta(seconds=0 * 60),
+            MetricName=Config.size_items_in_Megabytes,
+            Namespace=Config.cloudwatch_namespace,  # Unit='Percent',
+            Statistics=['Sum'])
+        CacheSizesList = []
+        for item in graphing_data_cache_size["Datapoints"]:
+            Sum = item["Sum"]
+            Time = item['Timestamp']
+            CacheSizes = [Time, Sum]
+            CacheSizesList.append(CacheSizes)
+        CacheSizesList.sort(key=itemgetter(0))
+
+        times = []
+        hits = []
+        misses = []
+        posts = []
+        num_items = []
+        cache_sizes = []
+
+        for row in HitsList:
+            times.append(row[0])
+            hits.append(row[1])
+        for miss in MissesList:
+            misses.append(miss[1])
+        for post in NumPostsList:
+            posts.append(post[1])
+        for item in NumItemsList:
+            num_items.append(item[1])
+        for size in CacheSizesList:
+            cache_sizes.append(size[1])
+
+        stats = list(zip(times, hits, misses, posts, num_items, cache_sizes))
+
+    except Exception as inst:
+        logging.info(
+            "CloudWatch Metric Query Error - Could not get memcache statistics to cloudwatch..." + str(inst))
+        return None
+    return stats
 
 def dynamo_create_image_table():
     try:
