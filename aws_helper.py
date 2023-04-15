@@ -368,7 +368,8 @@ def dynamo_add_image(key, bucket):
             }
         )
         logging.info("Successfully added Image to table!")
-        status_code = response['HTTPStatusCode']
+        logging.info(f"Response is: {str(response)}")
+        status_code = response['ResponseMetadata']['HTTPStatusCode']
     except Exception as inst:
         logging.info("Failed to add Image to table: " + str(inst))
         status_code = 400
