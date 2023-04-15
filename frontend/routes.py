@@ -7,10 +7,8 @@ from werkzeug.datastructures import FileStorage
 
 from config import Config
 from base64 import b64encode, b64decode
-from frontend.models import Image, MemcacheConfig
 from frontend import frontend
 from memapp import memapp
-from memapp.models import MemcacheData
 from flask import render_template, redirect, url_for, request, flash, jsonify
 from frontend.forms import SubmitButton, UploadForm, DisplayForm, MemcacheConfigForm
 
@@ -85,6 +83,7 @@ def upload():
 
     return render_template('upload.html', title="ECE1779 - Group 25 - Upload a Key-Value Pair", form=form)
 
+# TODO: Only upload route above has been switched over to S3 and DynamoDB - the rest is still to-do...
 
 # 1. Retrieval from disk WORKS
 # 2. Retrieval form memapp WORKS
@@ -420,7 +419,7 @@ def api_retrieval(key):
     return jsonify({"success": success, "key": [key], "content": encoded_image})
 
 # TODO: Will we need this?
-# adding a Logging start Button 
+# adding a Logging start Button
 @frontend.route('/start_update', methods=['GET', 'POST'])
 def start_update():
     if commits_running:

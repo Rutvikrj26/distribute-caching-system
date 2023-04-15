@@ -10,7 +10,6 @@ frontend.config.from_object(Config)
 bootstrap = Bootstrap(frontend)
 
 from frontend import routes, models
-from frontend.models import MemcacheConfig
 
 aws_helper.dynamo_delete_images_table()
 aws_helper.dynamo_create_image_table()

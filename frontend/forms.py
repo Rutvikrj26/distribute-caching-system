@@ -1,7 +1,6 @@
 from flask_wtf import FlaskForm
 from wtforms import StringField, SubmitField, FileField, IntegerField, RadioField, BooleanField
 from wtforms.validators import DataRequired, InputRequired
-from frontend.models import Image
 
 
 class UploadForm(FlaskForm):

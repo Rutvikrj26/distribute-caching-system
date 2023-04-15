@@ -1,4 +1,5 @@
 import sys
+import aws_helper
 
 from memapp import memapp, memcache, policy
 from flask import jsonify, request
@@ -7,10 +8,8 @@ from sqlalchemy.orm import sessionmaker
 from datetime import datetime
 import time
 from sqlalchemy import create_engine
-from memapp.models import MemcacheData
 import logging
 from frontend import frontend
-from frontend.models import MemcacheConfig
 from config import Config
 
 # Logging setup
@@ -118,18 +117,11 @@ def commit_update():
     while True:
         logging.info("Starting 5 second sleep timer...")
         logging.info(f"isRandom = {memcache_data['isRandom']}, max_size = {memcache_data['max_size']}")
-        time.sleep(5)
-
-        # First update memcache data
-        with memapp.app_context():
-            logging.info("Logging data to database...")
-            memcache_data["timestamp"] = datetime.utcnow()
-            new_entry = MemcacheData(timestamp=memcache_data['timestamp'], hits=memcache_data['hits'],
-                                     misses=memcache_data['misses'], posts_served=memcache_data['posts_served'],
-                                     num_items=len(memcache), current_size=memcache_data["cache_size"])
-            session.add(new_entry)
-            session.commit()
-            logging.info("UPDATE: refreshed database with new memcache data")
+        time.sleep(60)
+        logging.info("Logging memapp stats to cloudwatch...")
+        memcache_data["timestamp"] = datetime.utcnow()
+        aws_helper.log_memcache_stats(len(memcache), **memcache_data)
+        logging.info("Logged memapp stats to cloudwatch...")
 
 
 @memapp.route('/update_db', methods=['POST'])
@@ -149,7 +141,7 @@ def update():
 def refresh_configuration():
     with frontend.app_context():
         logging.info("Updating configuration information...")
-        memcache_config_data = MemcacheConfig.query.first()
+        # memcache_config_data = MemcacheConfig.query.first()
         assert(memcache_config_data is not None)
         memcache_data["isRandom"] = memcache_config_data.isRandom
         memcache_data["max_size"] = memcache_config_data.maxSize
