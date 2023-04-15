@@ -9,6 +9,18 @@ logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
 
+def create_bucket(bucket_name):
+    try:
+        logging.info(f"Attempting to create new bucket with name = {bucket_name}")
+        s3_client = boto3.client('s3', region_name=Config.AWS_REGION)
+        s3_client.create_bucket(Bucket=bucket_name)
+        logging.info(f"Successfully created bucket = {bucket_name}")
+        success = True
+    except Exception as e:
+        logging.info(f"FAILED!!! Could not create bucket: {e}")
+        success = False
+    return success
+
 def upload_fileobj(key, file_storage_object, bucket):
     try:
         logging.info("Attempting to upload image to S3...")

@@ -70,7 +70,9 @@ def upload():
     logging.info("Accessed UPLOAD page")
     form = UploadForm()
     if form.validate_on_submit():
-        key = form.key.data
+        email = form.customer.data
+        email_prefix = email.split("@")[0].strip()
+        key = email_prefix + "-" + form.key.data
         file = form.value.data
 
         # Check if the file type is valid
