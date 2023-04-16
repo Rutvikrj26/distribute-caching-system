@@ -3,6 +3,8 @@ import time
 import logging
 
 import requests
+from flask_login import login_required, logout_user
+
 import aws_helper
 from werkzeug.datastructures import FileStorage
 
@@ -12,25 +14,12 @@ from memapp import memapp
 from flask import render_template, redirect, url_for, request, flash, jsonify
 from frontend.forms import SubmitButton, UploadForm, DisplayForm, MemcacheConfigForm, RegistrationForm, LoginForm
 from frontend import frontend, db, bcrypt
-from frontend.models import User
-from flask_login import login_user, current_user, logout_user, login_required
+from auth import login_manager, current_user, User, employee_login_required, admin_login_required
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
 global commits_running
 commits_running = False
-
-# Extra Decorator to identify if the user logged in is employee or not
-def employee_login_required(f):
-    @login_required
-    def decorated_function(*args, **kwargs):
-        if current_user.is_employee:
-            return f(*args, **kwargs)
-        else:
-            flash('You do not have access to this page.', 'danger')
-            return redirect(url_for('index'))
-    return decorated_function
-
 
 @frontend.route('/register', methods=['GET', 'POST'])
 def register():
@@ -39,7 +28,7 @@ def register():
     form = RegistrationForm()
     if form.validate_on_submit():
         hashed_password = bcrypt.generate_password_hash(form.password.data).decode('utf-8')
-        user = User(username=form.username.data, email=form.email.data, password=hashed_password)
+        user = User(email=form.email.data, password=hashed_password, is_employee=False, is_admin=False)
         # updating the user table using the AWS Helper Function
         aws_helper.dynamo_create_user(user)
         flash('Your account has been created! You are now able to log in', 'success')
@@ -52,14 +41,15 @@ def login():
         return redirect(url_for('index'))
     form = LoginForm()
     if form.validate_on_submit():
-        user = User.query.filter_by(email=form.email.data).first()
-        if user and bcrypt.check_password_hash(user.password, form.password.data):
-            login_user(user, remember=form.remember.data)
-            next_page = request.args.get('next')
-            return redirect(next_page) if next_page else redirect(url_for('index'))
+        email = form.email.data
+        password = form.password.data
+        user = User.get(email)  # This retrieves the user from DynamoDB by email
+        if user and bcrypt.check_password_hash(user.password, password):
+            login_manager.login_user(user)  # Use the login_user from login_manager to support DynamoDB
+            return redirect(url_for('index'))
         else:
-            flash('Login Unsuccessful. Please check email and password', 'danger')
-    return render_template('login.html', title='Login', form=form)
+            flash('Invalid email or password')
+    return render_template('login.html', title='Log In', form=form)
 
 @login_required
 @frontend.route('/logout')
@@ -79,6 +69,7 @@ def index():
 # 2. Upload to database WORKS
 # 3. Upload to memapp WORKS
 # 4. Logging statement WORKS
+@employee_login_required
 @frontend.route('/upload', methods=['GET', 'POST'])
 def upload():
     logging.info("Accessed UPLOAD page")
@@ -203,6 +194,7 @@ def display():
 # 2. Delete from disk WORKS
 # 3. Delete from memapp WORKS
 # 4. Logging statement WORKS
+@admin_login_required
 @frontend.route('/show_delete_keys', methods=['GET', 'POST'])
 def show_delete_keys():
     logging.info("Accessed DELETE KEYS page")
@@ -259,6 +251,7 @@ def show_delete_keys():
 # 1. Call to database WORKS
 # 2. Check for empty database WORKS
 # 3. Logging statement WORKS
+@admin_login_required
 @frontend.route('/memcache_config', methods=['GET', 'POST'])
 def memcache_config():
     logging.info("Accessed MEMCACHE CONFIGURATION page")
@@ -290,6 +283,7 @@ def memcache_config():
 # TODO: Do we still want this page? Does it have any use?
 # GB: We can call it "developer dashboard" and can use it to monitor the number of requests etc.
 #     Also can use it to show that our cache size grows/shrinks based on miss rate.
+@admin_login_required
 @frontend.route('/memcache_stats', methods=['GET'])
 def memcache_stats():
     logging.info("Accessed MEMCACHE STATISTICS page")
@@ -328,6 +322,7 @@ def memcache_stats():
 
 
 # Endpoint Tested : OK
+@admin_login_required
 @frontend.route('/api/delete_all', methods=['POST'])
 def api_delete_all():
     logging.info("API call to DELETE_ALL")
@@ -370,6 +365,7 @@ def api_delete_all():
 
 
 # Endpoint Tested : OK
+@admin_login_required
 @frontend.route('/api/list_keys', methods=['POST'])
 def api_list_keys():
     logging.info("API call to LIST_KEYS")
@@ -379,6 +375,7 @@ def api_list_keys():
 
 
 # Endpoint Tested : OK
+@admin_login_required
 @frontend.route('/api/upload', methods=['GET', 'POST'])
 def api_upload():
     logging.info("API call to UPLOAD")
@@ -444,6 +441,7 @@ def api_upload():
 
 
 # Endpoint Tested : OK
+@admin_login_required
 @frontend.route('/api/key/<string:key>', methods=['GET', 'POST'])
 def api_retrieval(key):
     logging.info("API call to KEY/<key>")
@@ -480,6 +478,7 @@ def api_retrieval(key):
 
 # TODO: Will we need this?
 # adding a Logging start Button
+@admin_login_required
 @frontend.route('/start_update', methods=['GET', 'POST'])
 def start_update():
     if commits_running:
