@@ -19,6 +19,18 @@ logger.setLevel(logging.INFO)
 global commits_running
 commits_running = False
 
+# Extra Decorator to identify if the user logged in is employee or not
+def employee_login_required(f):
+    @login_required
+    def decorated_function(*args, **kwargs):
+        if current_user.is_employee:
+            return f(*args, **kwargs)
+        else:
+            flash('You do not have access to this page.', 'danger')
+            return redirect(url_for('index'))
+    return decorated_function
+
+
 @frontend.route('/register', methods=['GET', 'POST'])
 def register():
     if current_user.is_authenticated:
@@ -27,8 +39,8 @@ def register():
     if form.validate_on_submit():
         hashed_password = bcrypt.generate_password_hash(form.password.data).decode('utf-8')
         user = User(username=form.username.data, email=form.email.data, password=hashed_password)
-        db.session.add(user)
-        db.session.commit()
+        # updating the user table using the AWS Helper Function
+        aws_helper.dynamo_create_user(user)
         flash('Your account has been created! You are now able to log in', 'success')
         return redirect(url_for('login'))
     return render_template('register.html', title='Register', form=form)
@@ -48,6 +60,7 @@ def login():
             flash('Login Unsuccessful. Please check email and password', 'danger')
     return render_template('login.html', title='Login', form=form)
 
+@login_required
 @frontend.route('/logout')
 def logout():
     logout_user()

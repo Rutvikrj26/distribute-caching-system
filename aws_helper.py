@@ -356,6 +356,44 @@ def dynamo_create_image_table():
 
     return success
 
+def dynamo_create_user_table():
+    try:
+        dynamodb = boto3.resource('dynamodb')
+        table = dynamodb.create_table(
+            TableName='UserTable',
+            KeySchema=[
+                {
+                    'AttributeName': 'email',
+                    'KeyType': 'HASH'
+                }
+            ],
+            AttributeDefinitions=[
+                {
+                    'AttributeName': 'email',
+                    'AttributeType': 'S'
+                },
+                {
+                    'AttributeName': 'password',
+                    'AttributeType': 'HASH'
+                },
+                {
+                    'AttributeName': 'isEmployee',
+                    'AttributeType': 'BOOL'
+                }
+            ],
+            ProvisionedThroughput={
+                'ReadCapacityUnits': 1,
+                'WriteCapacityUnits': 1
+            }
+        )
+        logging.info("Successfully created Image table!")
+        success = True
+    except Exception as inst:
+        logging.info("Failed to create Image table: " + str(inst))
+        success = False
+
+    return success
+
 
 def dynamo_add_image(key, bucket):
     try:
@@ -375,6 +413,37 @@ def dynamo_add_image(key, bucket):
 
     return status_code
 
+def dynamo_add_user(email, password, isEmployee):
+    try:
+        dynamodb = boto3.resource('dynamodb')
+        table = dynamodb.Table('UserTable')
+        response = table.put_item(
+            Item = {
+                'email': email,
+                'password': password,
+                'isEmployee': isEmployee
+            }
+        )
+        logging.info("Successfully added User to table!")
+        status_code = response['HTTPStatusCode']
+    except Exception as inst:
+        logging.info("Failed to add User to table: " + str(inst))
+        status_code = 400
+
+    return status_code
+
+def dynamo_get_user(email):
+    try:
+        dynamodb = boto3.resource('dynamodb')
+        table = dynamodb.Table('UserTable')
+        response = table.query(KeyConditionExpression=Key('email').eq(email))
+        user = response['Items']
+        logging.info("Successfully retrieved user: " + str(user))
+    except Exception as inst:
+        logging.info("Failed to get User from table: " + str(inst))
+        user = []
+
+    return user
 
 def dynamo_get_images(bucket):
     try:
