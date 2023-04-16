@@ -14,7 +14,7 @@ from memapp import memapp
 from flask import render_template, redirect, url_for, request, flash, jsonify
 from frontend.forms import SubmitButton, UploadForm, DisplayForm, MemcacheConfigForm, RegistrationForm, LoginForm
 from frontend import frontend, db, bcrypt
-from auth import login_manager, current_user, User, employee_login_required, admin_login_required
+from frontend.auth import login_manager, current_user, User, employee_login_required, admin_login_required
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
@@ -263,8 +263,7 @@ def memcache_config():
     maxSize = 2
     form = MemcacheConfigForm(capacity=maxSize)
     if form.validate_on_submit():
-        # TODO: Need to send an update directly to memcache
-        response = requests.post(Config.MEMAPP_URL+"/refresh_config")
+        response = requests.post(Config.MEMAPP_URL+"/reconfig",params={'cacheSize': form.capacity.data})
         if response.status_code == 200:
             logging.info(f"Memcache configuration updated with maxSize = {form.capacity.data}")
             flash("Successfully updated the memcache configuration!")
@@ -280,9 +279,9 @@ def memcache_config():
     return render_template('memcache_config.html', title="ECE1779 - Group 25 - Configure the memcache", form=form, keys=keys)
 
 
-# TODO: Do we still want this page? Does it have any use?
-# GB: We can call it "developer dashboard" and can use it to monitor the number of requests etc.
-#     Also can use it to show that our cache size grows/shrinks based on miss rate.
+
+# We can call it "developer dashboard" and can use it to monitor the number of requests etc.
+# Also can use it to show that our cache size grows/shrinks based on miss rate.
 @admin_login_required
 @frontend.route('/memcache_stats', methods=['GET'])
 def memcache_stats():

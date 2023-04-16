@@ -2,7 +2,7 @@ from flask_wtf import FlaskForm
 from wtforms import StringField, SubmitField, FileField, IntegerField, RadioField, BooleanField, PasswordField
 from wtforms.validators import DataRequired, Length, Email, EqualTo, ValidationError
 from wtforms.validators import DataRequired, InputRequired
-from frontend.models import User
+from frontend.auth import User
 
 class UploadForm(FlaskForm):
     # Define the form here to upload a key/value pair
