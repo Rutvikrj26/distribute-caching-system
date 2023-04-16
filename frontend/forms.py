@@ -7,6 +7,7 @@ from frontend.models import User
 class UploadForm(FlaskForm):
     # Define the form here to upload a key/value pair
     key = StringField('Enter a unique key:', validators=[DataRequired()])
+    customer = StringField("Enter the customer's e-mail address:", validators=[DataRequired()])
     value = FileField('Browse:', validators=[DataRequired()])
     submit = SubmitField('Submit')
 

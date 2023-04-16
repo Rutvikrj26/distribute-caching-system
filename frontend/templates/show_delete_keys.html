@@ -4,10 +4,10 @@
 {% block frontend_content %}
     <h1>All Stored Keys</h1>
     <hr>
-    {% if images.count() > 0 %}
+    {% if keys|length > 0 %}
         <ol>
-            {% for image in images %}
-            <li>{{ image.id }}</li>
+            {% for key in keys %}
+            <li>{{ key }}</li>
             {% endfor %}
         </ol>
     {% else %}

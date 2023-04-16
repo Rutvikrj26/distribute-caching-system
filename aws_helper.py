@@ -9,6 +9,18 @@ logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
 
+def create_bucket(bucket_name):
+    try:
+        logging.info(f"Attempting to create new bucket with name = {bucket_name}")
+        s3_client = boto3.client('s3', region_name=Config.AWS_REGION)
+        s3_client.create_bucket(Bucket=bucket_name)
+        logging.info(f"Successfully created bucket = {bucket_name}")
+        success = True
+    except Exception as e:
+        logging.info(f"FAILED!!! Could not create bucket: {e}")
+        success = False
+    return success
+
 def upload_fileobj(key, file_storage_object, bucket):
     try:
         logging.info("Attempting to upload image to S3...")
@@ -39,8 +51,10 @@ def delete_all_from_s3(bucket):
         s3 = boto3.client('s3')
         response = s3.list_objects_v2(Bucket=bucket)
         images = response["Contents"]
-    except Exception:
-        logging.info("ERROR! Not able to get all keys from S3...")
+        logging.info(f"Found response: {response}")
+        logging.info(f"Found images: {images}")
+    except Exception as e:
+        logging.info(f"ERROR! Not able to get all keys from S3: {e}")
         return False
     try:
         images_to_delete = []
@@ -406,7 +420,8 @@ def dynamo_add_image(key, bucket):
             }
         )
         logging.info("Successfully added Image to table!")
-        status_code = response['HTTPStatusCode']
+        logging.info(f"Response is: {str(response)}")
+        status_code = response['ResponseMetadata']['HTTPStatusCode']
     except Exception as inst:
         logging.info("Failed to add Image to table: " + str(inst))
         status_code = 400

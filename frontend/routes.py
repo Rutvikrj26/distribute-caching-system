@@ -1,6 +1,7 @@
 import io
-import os
+import time
 import logging
+
 import requests
 import aws_helper
 from werkzeug.datastructures import FileStorage
@@ -83,7 +84,9 @@ def upload():
     logging.info("Accessed UPLOAD page")
     form = UploadForm()
     if form.validate_on_submit():
-        key = form.key.data
+        email = form.customer.data
+        email_prefix = email.split("@")[0].strip()
+        key = email_prefix + "-" + form.key.data
         file = form.value.data
 
         # Check if the file type is valid
@@ -106,8 +109,8 @@ def upload():
 
         # Store in database
         logging.info("Attempting to save key/bucket data to dynamodb...")
-        success = aws_helper.dynamo_add_image(key, Config.S3_BUCKET_NAME)
-        if success:
+        status_code = aws_helper.dynamo_add_image(key, Config.S3_BUCKET_NAME)
+        if status_code == 200:
             logging.info("Successfully saved image details to database")
         else:
             logging.info("FAIL!!! Could not save image details to database")
@@ -156,14 +159,16 @@ def display():
         # Else, go to S3
         else:
             logging.info("Image NOT in cache, going to disk...")
-            image_keys = aws_helper.dynamo_get_images(Config.S3_BUCKET_NAME)
-            if image_keys is None or image_keys == []:
+            image_info = aws_helper.dynamo_get_images(Config.S3_BUCKET_NAME)
+            if image_info is None or image_info == []:
                 logging.info("FAIL!!! No images associated with this bucket...")
                 flash("Could not find an image associated with this key.")
                 return redirect(url_for('display'))
             images = []
-            for image_key in image_keys:
-                my_file_storage = aws_helper.download_fileobj(image_key, Config.S3_BUCKET_NAME)
+            for image in image_info:
+                image_bucket = image['Bucket']
+                image_key = image['Key']
+                my_file_storage = aws_helper.download_fileobj(image_key, image_bucket)
                 images.append(my_file_storage)
             if len(images) == 0:
                 logging.info("FAIL!!! Image not in cache or on disk - BAD KEY")
@@ -176,7 +181,7 @@ def display():
                 image_location = 'data:image/png;base64,' + b64string
             # Now need to store back in the cache!
             for i in range(0, len(images)):
-                key = image_keys[i]
+                key = image_info[i]['Key']
                 image = images[i]
                 logging.info(f"PUTting image with key = {key} into cache")
                 b64string = b64encode(image.read()).decode("ASCII")
@@ -202,13 +207,17 @@ def display():
 def show_delete_keys():
     logging.info("Accessed DELETE KEYS page")
     form = SubmitButton()
-    images = Image.query.order_by(Image.timestamp.asc())
+    images = aws_helper.dynamo_get_images(Config.S3_BUCKET_NAME)
+    keys = []
+    for image in images:
+        keys.append(image["Key"])
     if form.validate_on_submit():
         # First delete from database:
         logging.info("Deleting images table from DynamoDB...")
         delete_success = aws_helper.dynamo_delete_images_table()
         if delete_success:
             logging.info("Table successfully deleted! Recreating...")
+            time.sleep(10)
             create_success = aws_helper.dynamo_create_image_table()
             if create_success:
                 logging.info("Table successfully recreated!")
@@ -244,7 +253,7 @@ def show_delete_keys():
         flash("All keys successfully deleted from cache, database, and disk.")
         return redirect(url_for('show_delete_keys'))
     return render_template('show_delete_keys.html', title="ECE1779 - Group 25 - Show and Delete All Keys",
-                           form=form, images=images)
+                           form=form, keys=keys)
 
 
 # 1. Call to database WORKS
