@@ -379,6 +379,18 @@ def dynamo_create_user_table():
                 {
                     'AttributeName': 'email',
                     'KeyType': 'HASH'
+                },
+                {
+                    'AttributeName': 'password',
+                    'KeyType': 'RANGE'
+                },
+                {
+                    'AttributeName': 'isEmployee',
+                    'KeyType': 'RANGE'
+                },
+                {
+                    'AttributeName': 'isAdmin',
+                    'KeyType': 'RANGE'
                 }
             ],
             AttributeDefinitions=[
