@@ -135,7 +135,7 @@ def reconfigure_cache():
     logging.info("API call to configure_cache...")
     args = request.args.to_dict()
     if 'cacheSize' in args:
-        memcache_data["max_size"] = args["cacheSize"]
+        memcache_data["max_size"] = int(args["cacheSize"])
         if memcache_data["max_size"] < memcache_data["cache_size"]:
             logging.info("Cache Resizing Required : Updating the current cache based on LRU Replacement Policy")
             memcache_data["cache_size"] = policy.lru_resize(memcache, memcache_data["cache_size"],
@@ -143,3 +143,8 @@ def reconfigure_cache():
         return jsonify({"status": "success", "status_code": 200})
     else:
         return jsonify({"status": "fail", "status_code": 400})
+
+@memapp.route('/get_cache_capacity', methods=['GET', 'POST'])
+def get_current_cache_capacity():
+    logging.info("API call to get current max cache size...")
+    return jsonify({"status": "success", "cacheSize": memcache_data["max_size"], "status_code": 200})

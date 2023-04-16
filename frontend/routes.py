@@ -323,12 +323,14 @@ def memcache_config():
     jsonResponse = response.json()
     keys = jsonResponse["keys"]
     keys = None if len(keys) == 0 else keys
-    # TODO: Need to get this data directly from memcache with a request
-    maxSize = 2
+
+    response = requests.get(Config.MEMAPP_URL + "get_cache_capacity")
+    jsonResponse = response.json()
+    maxSize = int(jsonResponse["cacheSize"])
+
     form = MemcacheConfigForm(capacity=maxSize)
     if form.validate_on_submit():
-        # TODO: Need to send an update directly to memcache
-        response = requests.post(Config.MEMAPP_URL+"/refresh_config")
+        response = requests.post(Config.MEMAPP_URL+"/reconfig",  params={'cacheSize': form.capacity.data})
         if response.status_code == 200:
             logging.info(f"Memcache configuration updated with maxSize = {form.capacity.data}")
             flash("Successfully updated the memcache configuration!")
