@@ -377,38 +377,18 @@ def dynamo_create_user_table():
             TableName='users',
             KeySchema=[
                 {
-                    'AttributeName': 'email',
+                    'AttributeName': 'email_status',
                     'KeyType': 'HASH'
-                },
-                {
-                    'AttributeName': 'password',
-                    'KeyType': 'RANGE'
-                },
-                {
-                    'AttributeName': 'isEmployee',
-                    'KeyType': 'RANGE'
-                },
-                {
-                    'AttributeName': 'isAdmin',
-                    'KeyType': 'RANGE'
                 }
             ],
             AttributeDefinitions=[
                 {
-                    'AttributeName': 'email',
+                    'AttributeName': 'email_status',
                     'AttributeType': 'S'
                 },
                 {
                     'AttributeName': 'password',
                     'AttributeType': 'S'
-                },
-                {
-                    'AttributeName': 'isEmployee',
-                    'AttributeType': 'B'
-                },
-                {
-                    'AttributeName': 'isAdmin',
-                    'AttributeType': 'B'
                 }
             ],
             ProvisionedThroughput={
@@ -444,16 +424,14 @@ def dynamo_add_image(key, bucket):
 
     return status_code
 
-def dynamo_add_user(email, password, isEmployee, isAdmin):
+def dynamo_add_user(email_status, password):
     try:
         dynamodb = boto3.resource('dynamodb')
         table = dynamodb.Table('UserTable')
         response = table.put_item(
             Item = {
-                'email': email,
+                'email_status': email_status,
                 'password': password,
-                'isEmployee': isEmployee,
-                'isAdmin': isAdmin
             }
         )
         logging.info("Successfully added User to table!")
@@ -464,15 +442,15 @@ def dynamo_add_user(email, password, isEmployee, isAdmin):
 
     return status_code
 
-def dynamo_get_user(email):
+def dynamo_get_user(email_status):
     try:
         dynamodb = boto3.resource('dynamodb')
         table = dynamodb.Table('UserTable')
-        response = table.query(KeyConditionExpression=Key('email').eq(email))
+        response = table.query(KeyConditionExpression=Key('email_status').eq(email_status))
         user = response['Items']
         logging.info("Successfully retrieved user: " + user.get_id())
     except Exception as inst:
-        logging.info("Failed to get User from table: " + email)
+        logging.info("Failed to get User" + email_status + "from table: " + str(inst))
         user = []
 
     return user

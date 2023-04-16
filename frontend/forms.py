@@ -1,5 +1,5 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, SubmitField, FileField, IntegerField, RadioField, BooleanField, PasswordField
+from wtforms import StringField, SubmitField, FileField, IntegerField, RadioField, BooleanField, PasswordField, SelectField
 from wtforms.validators import DataRequired, Length, Email, EqualTo, ValidationError
 from wtforms.validators import DataRequired, InputRequired
 
@@ -32,20 +32,20 @@ class SubmitButton(FlaskForm):
 
 class RegistrationForm(FlaskForm):
     email = StringField('Email', validators=[DataRequired(), Email()])
-    password = PasswordField('Password', validators=[DataRequired()])
-    confirm_password = PasswordField('Confirm Password', validators=[DataRequired(), EqualTo('password')])
-    submit = SubmitField('Sign Up')
+    password = PasswordField('Password', validators=[DataRequired(), EqualTo('confirm_password', message='Passwords must match')])
+    confirm_password = PasswordField('Confirm Password', validators=[DataRequired()])
+    status = SelectField('Status', choices=[('0', 'Employee'), ('1', 'Customer'), ('2', 'Admin')], coerce=int)
+    submit = SubmitField('Register')
 
     def validate_email(self, email):
         user = aws_helper.dynamo_get_user(email.data)
         if user:
             raise ValidationError('That email is taken. Please choose a different one.')
 
-
-
 class LoginForm(FlaskForm):
     email = StringField('Email', validators=[DataRequired(), Email()])
     password = PasswordField('Password', validators=[DataRequired()])
-    submit = SubmitField('Login')
+    status = SelectField('Status', choices=[('0', 'Employee'), ('1', 'Customer'), ('2', 'Admin')], coerce=int)
+    submit = SubmitField('Log In')
 
 

@@ -25,11 +25,10 @@ dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
 table = dynamodb.Table('users')  # Replace 'users' with the name of your table
 
 class User(UserMixin):
-    def __init__(self, email, password, isEmployee, isAdmin):
+    def __init__(self, email, password, status):
         self.email = email
         self.password = password
-        self.isEmployee = isEmployee
-        self.isAdmin = isAdmin
+        self.status = status
 
     def get_id(self):
         return self.email
@@ -76,7 +75,11 @@ def register():
     if form.validate_on_submit():
         hashed_password = bcrypt.generate_password_hash(form.password.data).decode('utf-8')
         # updating the user table using the AWS Helper Function
-        response_code = aws_helper.dynamo_add_user(email=form.email.data, password=hashed_password, isEmployee=False, isAdmin=False)
+        email = form.email.data
+        password = hashed_password
+        status = form.status.data
+        email_status = email + '_' + str(status)
+        response_code = aws_helper.dynamo_add_user(email_status, password=hashed_password)
         if response_code == 200:
             flash('Your account has been created! You are now able to log in', 'success')
             logging.info(f"New user registered: {form.email.data}") # Log the new user's email
@@ -98,7 +101,9 @@ def login():
     if form.validate_on_submit():
         email = form.email.data
         password = form.password.data
-        user = aws_helper.dynamo_get_user(email)  # This retrieves the user from DynamoDB by email
+        status = form.status.data
+        email_status = email + '_' + str(status)
+        user = aws_helper.dynamo_get_user(email_status)  # This retrieves the user from DynamoDB by email
         if user != None:
             if user and bcrypt.check_password_hash(user.password, password):
                 login_manager.login_user(user)  # Use the login_user from login_manager to support DynamoDB
