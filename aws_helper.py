@@ -51,8 +51,10 @@ def delete_all_from_s3(bucket):
         s3 = boto3.client('s3')
         response = s3.list_objects_v2(Bucket=bucket)
         images = response["Contents"]
-    except Exception:
-        logging.info("ERROR! Not able to get all keys from S3...")
+        logging.info(f"Found response: {response}")
+        logging.info(f"Found images: {images}")
+    except Exception as e:
+        logging.info(f"ERROR! Not able to get all keys from S3: {e}")
         return False
     try:
         images_to_delete = []

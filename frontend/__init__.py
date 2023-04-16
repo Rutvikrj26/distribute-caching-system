@@ -19,5 +19,4 @@ login_manager.login_message_category = 'info'
 
 from frontend import routes, models
 
-aws_helper.dynamo_delete_images_table()
 aws_helper.dynamo_create_image_table()
