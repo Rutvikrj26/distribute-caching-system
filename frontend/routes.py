@@ -15,6 +15,8 @@ from flask import flash, redirect, url_for
 from flask_login import UserMixin, login_required, logout_user, current_user
 from frontend import login_manager
 
+import logging
+
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
@@ -33,22 +35,37 @@ class User(UserMixin):
     def get_id(self):
         return self.email
 
-def user_loader(email):
-    response = table.get_item(Key={'email': email})
-    if 'Item' not in response:
-        return None
-    user_data = response['Item']
-    return User(email=user_data['email'])
-
 @login_manager.user_loader
-def load_user(email):
-    return user_loader(email)
+def load_user(email_status):
+    email, status = email_status.split('_')
+    user = aws_helper.dynamo_get_user(email_status)
+    if not user:
+        return None
+    return User(email=email, password=user['password'], status=int(status))
 
 # Extra Decorator to identify if the user logged in is employee or not
+from functools import wraps
+from flask_login import current_user
+from flask import flash, redirect, url_for
+
 def employee_login_required(f):
     @login_required
+    @wraps(f)
     def decorated_function(*args, **kwargs):
-        if current_user.is_employee:
+        status = int(current_user.get_id().split('_')[-1])
+        if current_user.is_authenticated and status == 0:
+            return f(*args, **kwargs)
+        else:
+            flash('You do not have access to this page.', 'danger')
+            return redirect(url_for('index'))
+    return decorated_function
+
+def customer_login_required(f):
+    @login_required
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        status = int(current_user.get_id().split('_')[-1])
+        if current_user.is_authenticated and status == 1:
             return f(*args, **kwargs)
         else:
             flash('You do not have access to this page.', 'danger')
@@ -57,15 +74,15 @@ def employee_login_required(f):
 
 def admin_login_required(f):
     @login_required
+    @wraps(f)
     def decorated_function(*args, **kwargs):
-        if current_user.is_admin:
+        status = int(current_user.get_id().split('_')[-1])
+        if current_user.is_authenticated and status == 2:
             return f(*args, **kwargs)
         else:
             flash('You do not have access to this page.', 'danger')
             return redirect(url_for('index'))
     return decorated_function
-
-import logging
 
 @frontend.route('/register', methods=['GET', 'POST'])
 def register():
@@ -104,11 +121,12 @@ def login():
         status = form.status.data
         email_status = email + '_' + str(status)
         user = aws_helper.dynamo_get_user(email_status)  # This retrieves the user from DynamoDB by email
-        if user != None:
-            if user and bcrypt.check_password_hash(user.password, password):
-                login_manager.login_user(user)  # Use the login_user from login_manager to support DynamoDB
+        if user is not []:
+            if bcrypt.check_password_hash(user[0]['password'], password):
+                user_obj = User(user[0]['email'], user[0]['password'], user[0]['status'])
+                login_manager.login_user(user_obj)  # Use the login_user from flask_login to support DynamoDB
                 flash('You have been logged in!', 'success')
-                logging.info(f"User logged in: {email}") # Log the user's email when they log in
+                logging.info(f"User logged in: {email}")  # Log the user's email when they log in
                 return redirect(url_for('index'))
             else:
                 flash('No such email / password combination exists.', 'danger')
@@ -118,8 +136,8 @@ def login():
             logging.info(f"Login failed: {email}") # Log the user's email when they log in
     return render_template('login.html', title='Log In', form=form)
 
-@login_required
 @frontend.route('/logout')
+@login_required
 def logout():
     logout_user()
     logging.info("User logged out") # Log when a user logs out
@@ -138,8 +156,8 @@ def index():
 # 2. Upload to database WORKS
 # 3. Upload to memapp WORKS
 # 4. Logging statement WORKS
-@employee_login_required
 @frontend.route('/upload', methods=['GET', 'POST'])
+@employee_login_required
 def upload():
     logging.info("Accessed UPLOAD page")
     form = UploadForm()
@@ -203,6 +221,7 @@ def upload():
 # 3. Display in HTML WORKS
 # 4. Logging statement WORKS
 @frontend.route('/display', methods=['GET', 'POST'])
+@customer_login_required
 def display():
     logging.info("Accessed DISPLAY page")
     form = DisplayForm()
@@ -263,8 +282,8 @@ def display():
 # 2. Delete from disk WORKS
 # 3. Delete from memapp WORKS
 # 4. Logging statement WORKS
-@admin_login_required
 @frontend.route('/show_delete_keys', methods=['GET', 'POST'])
+@admin_login_required
 def show_delete_keys():
     logging.info("Accessed DELETE KEYS page")
     form = SubmitButton()
@@ -320,8 +339,8 @@ def show_delete_keys():
 # 1. Call to database WORKS
 # 2. Check for empty database WORKS
 # 3. Logging statement WORKS
-@admin_login_required
 @frontend.route('/memcache_config', methods=['GET', 'POST'])
+@admin_login_required
 def memcache_config():
     logging.info("Accessed MEMCACHE CONFIGURATION page")
     response = requests.post(Config.MEMAPP_URL + 'get_all_keys')
@@ -354,8 +373,8 @@ def memcache_config():
 # TODO: Do we still want this page? Does it have any use?
 # GB: We can call it "developer dashboard" and can use it to monitor the number of requests etc.
 #     Also can use it to show that our cache size grows/shrinks based on miss rate.
-@admin_login_required
 @frontend.route('/memcache_stats', methods=['GET'])
+@admin_login_required
 def memcache_stats():
     logging.info("Accessed MEMCACHE STATISTICS page")
     num_nodes_stats = aws_helper.get_data_from_cloudwatch(Config.num_active_nodes, 30)
@@ -393,7 +412,6 @@ def memcache_stats():
 
 
 # Endpoint Tested : OK
-@admin_login_required
 @frontend.route('/api/delete_all', methods=['POST'])
 def api_delete_all():
     logging.info("API call to DELETE_ALL")
@@ -436,7 +454,6 @@ def api_delete_all():
 
 
 # Endpoint Tested : OK
-@admin_login_required
 @frontend.route('/api/list_keys', methods=['POST'])
 def api_list_keys():
     logging.info("API call to LIST_KEYS")
@@ -446,7 +463,6 @@ def api_list_keys():
 
 
 # Endpoint Tested : OK
-@admin_login_required
 @frontend.route('/api/upload', methods=['GET', 'POST'])
 def api_upload():
     logging.info("API call to UPLOAD")
@@ -512,7 +528,6 @@ def api_upload():
 
 
 # Endpoint Tested : OK
-@admin_login_required
 @frontend.route('/api/key/<string:key>', methods=['GET', 'POST'])
 def api_retrieval(key):
     logging.info("API call to KEY/<key>")
@@ -549,7 +564,6 @@ def api_retrieval(key):
 
 # TODO: Will we need this?
 # adding a Logging start Button
-@admin_login_required
 @frontend.route('/start_update', methods=['GET', 'POST'])
 def start_update():
     if commits_running:
