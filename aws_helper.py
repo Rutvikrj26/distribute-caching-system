@@ -379,6 +379,10 @@ def dynamo_create_user_table():
                 {
                     'AttributeName': 'email_status',
                     'KeyType': 'HASH'
+                },
+                {
+                    'AttributeName': 'password',
+                    'KeyType': 'RANGE'
                 }
             ],
             AttributeDefinitions=[
@@ -427,7 +431,7 @@ def dynamo_add_image(key, bucket):
 def dynamo_add_user(email_status, password):
     try:
         dynamodb = boto3.resource('dynamodb')
-        table = dynamodb.Table('UserTable')
+        table = dynamodb.Table('users')
         response = table.put_item(
             Item = {
                 'email_status': email_status,
@@ -435,7 +439,7 @@ def dynamo_add_user(email_status, password):
             }
         )
         logging.info("Successfully added User to table!")
-        status_code = response['HTTPStatusCode']
+        status_code = 200
     except Exception as inst:
         logging.info("Failed to add User to table: " + str(inst))
         status_code = 400
@@ -445,12 +449,12 @@ def dynamo_add_user(email_status, password):
 def dynamo_get_user(email_status):
     try:
         dynamodb = boto3.resource('dynamodb')
-        table = dynamodb.Table('UserTable')
+        table = dynamodb.Table('users')
         response = table.query(KeyConditionExpression=Key('email_status').eq(email_status))
         user = response['Items']
-        logging.info("Successfully retrieved user: " + user.get_id())
+        logging.info("Successfully retrieved user: " + str(user))
     except Exception as inst:
-        logging.info("Failed to get User" + email_status + "from table: " + str(inst))
+        logging.info("Failed to get User: " + email_status + " from table: " + str(inst))
         user = []
 
     return user
