@@ -1,13 +1,10 @@
 import sys
 import aws_helper
-
 from memapp import memapp, memcache, policy
 from flask import jsonify, request
 import threading
-from sqlalchemy.orm import sessionmaker
 from datetime import datetime
 import time
-from sqlalchemy import create_engine
 import logging
 from frontend import frontend
 from config import Config
@@ -16,11 +13,6 @@ from config import Config
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
-# Connecting to the database
-engine = create_engine(Config.SQLALCHEMY_DATABASE_URI)
-Session = sessionmaker(bind=engine)
-session = Session()
-
 # Local Memcache Stats Data
 memcache_data = {
     "timestamp": None,
@@ -28,7 +20,7 @@ memcache_data = {
     "misses": 0,
     "posts_served": 0,
     "cache_size": 0,
-    "isRandom": 1,
+    "isRandom": 0,
     "max_size": 2,
     "commits_running": False
 }
@@ -136,23 +128,18 @@ def update():
     logging.info("Logging thread started successfully...")
     return jsonify({"status": "success", "status_code": 200})
 
-# Refresh Configuration by querying it from the database
-@memapp.route('/refresh_config', methods=['POST'])
-def refresh_configuration():
-    with frontend.app_context():
-        logging.info("Updating configuration information...")
-        # memcache_config_data = MemcacheConfig.query.first()
-        assert(memcache_config_data is not None)
-        memcache_data["isRandom"] = memcache_config_data.isRandom
-        memcache_data["max_size"] = memcache_config_data.maxSize
-
-    # Resize the cache if we shrink it and need to evict items
-    if memcache_data["max_size"] < memcache_data["cache_size"]:
-        if memcache_data["isRandom"] == 1:
-            logging.info("Cache Resizing Required : Updating the current cache based on Random Replacement Policy")
-            memcache_data["cache_size"] = policy.random_resize(memcache, memcache_data["cache_size"], memcache_data["max_size"])
-        else:
+# Re-Configuration based on request argument
+@memapp.route('/reconfig', methods=['GET', 'POST'])
+def reconfigure_cache():
+    # sample call
+    logging.info("API call to configure_cache...")
+    args = request.args.to_dict()
+    if 'cacheSize' in args:
+        memcache_data["max_size"] = args["cacheSize"]
+        if memcache_data["max_size"] < memcache_data["cache_size"]:
             logging.info("Cache Resizing Required : Updating the current cache based on LRU Replacement Policy")
-            memcache_data["cache_size"] = policy.lru_resize(memcache, memcache_data["cache_size"], memcache_data["max_size"])
-
-    return jsonify({"status": "success", "status_code": 200})
+            memcache_data["cache_size"] = policy.lru_resize(memcache, memcache_data["cache_size"],
+                                                            memcache_data["max_size"])
+        return jsonify({"status": "success", "status_code": 200})
+    else:
+        return jsonify({"status": "fail", "status_code": 400})
