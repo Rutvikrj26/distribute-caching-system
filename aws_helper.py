@@ -374,7 +374,7 @@ def dynamo_create_user_table():
     try:
         dynamodb = boto3.resource('dynamodb')
         table = dynamodb.create_table(
-            TableName='UserTable',
+            TableName='users',
             KeySchema=[
                 {
                     'AttributeName': 'email',
@@ -404,10 +404,10 @@ def dynamo_create_user_table():
                 'WriteCapacityUnits': 1
             }
         )
-        logging.info("Successfully created Image table!")
+        logging.info("Successfully created User table!")
         success = True
     except Exception as inst:
-        logging.info("Failed to create Image table: " + str(inst))
+        logging.info("Failed to create User table: " + str(inst))
         success = False
 
     return success
