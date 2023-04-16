@@ -388,15 +388,15 @@ def dynamo_create_user_table():
                 },
                 {
                     'AttributeName': 'password',
-                    'AttributeType': 'HASH'
+                    'AttributeType': 'S'
                 },
                 {
                     'AttributeName': 'isEmployee',
-                    'AttributeType': 'BOOL'
+                    'AttributeType': 'B'
                 },
                 {
                     'AttributeName': 'isAdmin',
-                    'AttributeType': 'BOOL'
+                    'AttributeType': 'B'
                 }
             ],
             ProvisionedThroughput={
