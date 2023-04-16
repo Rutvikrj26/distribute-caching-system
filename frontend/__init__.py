@@ -13,10 +13,12 @@ bootstrap = Bootstrap(frontend)
 db = SQLAlchemy(frontend)
 bcrypt = Bcrypt(frontend)
 login_manager = LoginManager(frontend)
+login_manager.login_view = 'login'
 
 login_manager.login_view = 'login'
 login_manager.login_message_category = 'info'
 
-from frontend import routes, models
-
 aws_helper.dynamo_create_image_table()
+aws_helper.dynamo_create_user_table()
+
+from frontend import routes, models

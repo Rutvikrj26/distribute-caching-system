@@ -2,7 +2,8 @@ from flask_wtf import FlaskForm
 from wtforms import StringField, SubmitField, FileField, IntegerField, RadioField, BooleanField, PasswordField
 from wtforms.validators import DataRequired, Length, Email, EqualTo, ValidationError
 from wtforms.validators import DataRequired, InputRequired
-from frontend.models import User
+
+import aws_helper
 
 class UploadForm(FlaskForm):
     # Define the form here to upload a key/value pair
@@ -36,9 +37,10 @@ class RegistrationForm(FlaskForm):
     submit = SubmitField('Sign Up')
 
     def validate_email(self, email):
-        user = User.query.filter_by(email=email.data).first()
+        user = aws_helper.dynamo_get_user(email.data)
         if user:
             raise ValidationError('That email is taken. Please choose a different one.')
+
 
 
 class LoginForm(FlaskForm):

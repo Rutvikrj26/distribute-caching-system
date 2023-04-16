@@ -393,6 +393,10 @@ def dynamo_create_user_table():
                 {
                     'AttributeName': 'isEmployee',
                     'AttributeType': 'BOOL'
+                },
+                {
+                    'AttributeName': 'isAdmin',
+                    'AttributeType': 'BOOL'
                 }
             ],
             ProvisionedThroughput={
@@ -428,7 +432,7 @@ def dynamo_add_image(key, bucket):
 
     return status_code
 
-def dynamo_add_user(email, password, isEmployee):
+def dynamo_add_user(email, password, isEmployee, isAdmin):
     try:
         dynamodb = boto3.resource('dynamodb')
         table = dynamodb.Table('UserTable')
@@ -436,7 +440,8 @@ def dynamo_add_user(email, password, isEmployee):
             Item = {
                 'email': email,
                 'password': password,
-                'isEmployee': isEmployee
+                'isEmployee': isEmployee,
+                'isAdmin': isAdmin
             }
         )
         logging.info("Successfully added User to table!")
@@ -453,9 +458,9 @@ def dynamo_get_user(email):
         table = dynamodb.Table('UserTable')
         response = table.query(KeyConditionExpression=Key('email').eq(email))
         user = response['Items']
-        logging.info("Successfully retrieved user: " + str(user))
+        logging.info("Successfully retrieved user: " + user.get_id())
     except Exception as inst:
-        logging.info("Failed to get User from table: " + str(inst))
+        logging.info("Failed to get User from table: " + email)
         user = []
 
     return user

@@ -1,25 +1,72 @@
 import io
 import time
 import logging
-
 import requests
-from flask_login import login_required, logout_user
-
 import aws_helper
 from werkzeug.datastructures import FileStorage
 
 from config import Config
 from base64 import b64encode, b64decode
-from memapp import memapp
-from flask import render_template, redirect, url_for, request, flash, jsonify
+from flask import render_template, request, flash, jsonify
 from frontend.forms import SubmitButton, UploadForm, DisplayForm, MemcacheConfigForm, RegistrationForm, LoginForm
 from frontend import frontend, db, bcrypt
-from auth import login_manager, current_user, User, employee_login_required, admin_login_required
+import boto3
+from flask import flash, redirect, url_for
+from flask_login import UserMixin, login_required, logout_user, current_user
+from frontend import login_manager
+
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
 global commits_running
 commits_running = False
+
+dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
+table = dynamodb.Table('users')  # Replace 'users' with the name of your table
+
+class User(UserMixin):
+    def __init__(self, email, password, isEmployee, isAdmin):
+        self.email = email
+        self.password = password
+        self.isEmployee = isEmployee
+        self.isAdmin = isAdmin
+
+    def get_id(self):
+        return self.email
+
+def user_loader(email):
+    response = table.get_item(Key={'email': email})
+    if 'Item' not in response:
+        return None
+    user_data = response['Item']
+    return User(email=user_data['email'])
+
+@login_manager.user_loader
+def load_user(email):
+    return user_loader(email)
+
+# Extra Decorator to identify if the user logged in is employee or not
+def employee_login_required(f):
+    @login_required
+    def decorated_function(*args, **kwargs):
+        if current_user.is_employee:
+            return f(*args, **kwargs)
+        else:
+            flash('You do not have access to this page.', 'danger')
+            return redirect(url_for('index'))
+    return decorated_function
+
+def admin_login_required(f):
+    @login_required
+    def decorated_function(*args, **kwargs):
+        if current_user.is_admin:
+            return f(*args, **kwargs)
+        else:
+            flash('You do not have access to this page.', 'danger')
+            return redirect(url_for('index'))
+    return decorated_function
+
+import logging
 
 @frontend.route('/register', methods=['GET', 'POST'])
 def register():
@@ -28,11 +75,19 @@ def register():
     form = RegistrationForm()
     if form.validate_on_submit():
         hashed_password = bcrypt.generate_password_hash(form.password.data).decode('utf-8')
-        user = User(email=form.email.data, password=hashed_password, is_employee=False, is_admin=False)
         # updating the user table using the AWS Helper Function
-        aws_helper.dynamo_create_user(user)
-        flash('Your account has been created! You are now able to log in', 'success')
-        return redirect(url_for('login'))
+        response_code = aws_helper.dynamo_add_user(email=form.email.data, password=hashed_password, isEmployee=False, isAdmin=False)
+        if response_code == 200:
+            flash('Your account has been created! You are now able to log in', 'success')
+            logging.info(f"New user registered: {form.email.data}") # Log the new user's email
+            return redirect(url_for('login'))
+        elif response_code == 400:
+            flash('Registration failed. Please try again.')
+            logging.info(f"Registration failed: {form.email.data}") # Log the new user's email
+        else:
+            flash('Something went wrong on our side, please try again after some time.')
+            logging.info(f"AWS Response Code : {response_code}") # Log the new user's email
+
     return render_template('register.html', title='Register', form=form)
 
 @frontend.route('/login', methods=['GET', 'POST'])
@@ -43,20 +98,29 @@ def login():
     if form.validate_on_submit():
         email = form.email.data
         password = form.password.data
-        user = User.get(email)  # This retrieves the user from DynamoDB by email
-        if user and bcrypt.check_password_hash(user.password, password):
-            login_manager.login_user(user)  # Use the login_user from login_manager to support DynamoDB
-            return redirect(url_for('index'))
+        user = aws_helper.dynamo_get_user(email)  # This retrieves the user from DynamoDB by email
+        if user != None:
+            if user and bcrypt.check_password_hash(user.password, password):
+                login_manager.login_user(user)  # Use the login_user from login_manager to support DynamoDB
+                flash('You have been logged in!', 'success')
+                logging.info(f"User logged in: {email}") # Log the user's email when they log in
+                return redirect(url_for('index'))
+            else:
+                flash('No such email / password combination exists.', 'danger')
+                logging.info(f"Login failed: {email}") # Log the user's email when they log in
         else:
-            flash('Invalid email or password')
+            flash('There was some error in logging you in. Please try again later.', 'danger')
+            logging.info(f"Login failed: {email}") # Log the user's email when they log in
     return render_template('login.html', title='Log In', form=form)
 
 @login_required
 @frontend.route('/logout')
 def logout():
     logout_user()
+    logging.info("User logged out") # Log when a user logs out
     flash('You have been logged out.')
     return redirect(url_for('index'))
+
 
 
 @frontend.route('/')

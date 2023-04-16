@@ -19,3 +19,4 @@ from flask_login import UserMixin
 #
 #     def __repr__(self):
 #         return '<MemcacheConfig with ID: {0}>'.format(self.id)
+
