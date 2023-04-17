@@ -123,7 +123,8 @@ def login():
         user = aws_helper.dynamo_get_user(email_status)  # This retrieves the user from DynamoDB by email
         if user is not []:
             if bcrypt.check_password_hash(user[0]['password'], password):
-                user_obj = User(user[0]['email'], user[0]['password'], user[0]['status'])
+                email, status = email_status.split('_')
+                user_obj = User(email, user[0]['password'], status)
                 login_manager.login_user(user_obj)  # Use the login_user from flask_login to support DynamoDB
                 flash('You have been logged in!', 'success')
                 logging.info(f"User logged in: {email}")  # Log the user's email when they log in
