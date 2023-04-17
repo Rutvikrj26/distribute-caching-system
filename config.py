@@ -13,7 +13,7 @@ class Config(object):
     ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
 
     AWS_REGION = 'us-east-2'
-    S3_BUCKET_NAME = "ece-a3-gb"
+    S3_BUCKET_NAME = "a3-petsitter"
     # Cloudwatch metrics - use these, so we don't accidentally make doubles that cost $$$
     cloudwatch_namespace = 'ECE1779/Grp25'
     misses = 'misses'
