@@ -158,7 +158,7 @@ def upload():
     logging.info("Accessed UPLOAD page")
     form = UploadForm()
     if form.validate_on_submit():
-        email = form.customer.data
+        email = form.customer.data #ToDo: get current user
         email_prefix = email.split("@")[0].strip()
         key = email_prefix + "-" + form.key.data
         file = form.value.data
@@ -223,7 +223,7 @@ def display():
     form = DisplayForm()
     if form.validate_on_submit():
         # Try cache first
-        key = form.key.data
+        key = form.key. # ToDo: prefix "<current user email prefix>-"
         response = requests.post(Config.MEMAPP_URL+"/get", data={'key': key})
         jsonResponse = response.json()
         if jsonResponse["status_code"] == 200:
