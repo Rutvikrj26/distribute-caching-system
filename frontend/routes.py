@@ -1,6 +1,8 @@
 import io
 import time
 import logging
+from functools import wraps
+
 import requests
 import aws_helper
 from werkzeug.datastructures import FileStorage
@@ -44,10 +46,6 @@ def load_user(email_status):
     return User(email=email, password=user['password'], status=int(status))
 
 # Extra Decorator to identify if the user logged in is employee or not
-from functools import wraps
-from flask_login import current_user
-from flask import flash, redirect, url_for
-
 def employee_login_required(f):
     @login_required
     @wraps(f)
@@ -96,7 +94,7 @@ def register():
         password = hashed_password
         status = form.status.data
         email_status = email + '_' + str(status)
-        response_code = aws_helper.dynamo_add_user(email_status, password=hashed_password)
+        response_code = aws_helper.dynamo_add_user(email_status, hashed_password)
         if response_code == 200:
             flash('Your account has been created! You are now able to log in', 'success')
             logging.info(f"New user registered: {form.email.data}") # Log the new user's email
@@ -125,7 +123,7 @@ def login():
             if bcrypt.check_password_hash(user[0]['password'], password):
                 email, status = email_status.split('_')
                 user_obj = User(email, user[0]['password'], status)
-                login_manager.login_user(user_obj)  # Use the login_user from flask_login to support DynamoDB
+                login_user(user_obj)  # Use the login_user from flask_login to support DynamoDB
                 flash('You have been logged in!', 'success')
                 logging.info(f"User logged in: {email}")  # Log the user's email when they log in
                 return redirect(url_for('index'))
