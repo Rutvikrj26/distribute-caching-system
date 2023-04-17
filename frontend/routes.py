@@ -236,7 +236,7 @@ def display():
             logging.info("Image found in cache, accessing...")
             b64string = jsonResponse['value']
             logging.info("Image retrieved from cache...")
-            image_location = 'data:image/png;base64,' + b64string
+            image_locations = ['data:image/png;base64,' + b64string]
         # Else, go to S3
         else:
             logging.info("Image NOT in cache, going to disk...")
