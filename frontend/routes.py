@@ -123,7 +123,7 @@ def login():
         status = form.status.data
         email_status = email + '_' + str(status)
         user = aws_helper.dynamo_get_user(email_status)  # This retrieves the user from DynamoDB by email
-        if user is not []:
+        if user:
             if bcrypt.check_password_hash(user[0]['password'], password):
                 user_obj = User(email_status, user[0]['password'])
                 login_user(user_obj)  # Use the login_user from flask_login to support DynamoDB
@@ -134,7 +134,7 @@ def login():
                 flash('No such email / password combination exists.', 'danger')
                 logging.info(f"Login failed: {email}") # Log the user's email when they log in
         else:
-            flash('There was some error in logging you in. Please try again later.', 'danger')
+            flash('No Such User Email Exists. Please Register', 'danger')
             logging.info(f"Login failed: {email}") # Log the user's email when they log in
     return render_template('login.html', title='Log In', form=form)
 
