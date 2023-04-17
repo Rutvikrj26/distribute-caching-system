@@ -93,7 +93,12 @@ def register():
         status = form.status.data
         email_status = email + '_' + str(status)
         response_code = aws_helper.dynamo_add_user(email_status, hashed_password)
-        if response_code == 200:
+        if response_code == 200 and status == 1:
+            response = aws_helper.create_bucket(email)
+            if response == 'success':
+                logging.info(f"Bucket created for user: {email}")
+            else:
+                logging.info(f"Bucket creation failed for user: {email}")
             flash('Your account has been created! You are now able to log in', 'success')
             logging.info(f"New user registered: {form.email.data}") # Log the new user's email
             return redirect(url_for('login'))
