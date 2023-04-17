@@ -560,7 +560,14 @@ def api_retrieval(key):
         logging.info("Attempting to encode image to send as json...")
         encoded_image = b64encode(image.read()).decode("ASCII")
         logging.info("Successfully encoded image")
-
+        logging.info(f"Putting image with key = {key} into cache")
+        response = requests.post(Config.MEMAPP_URL + "/put", data={'key': key, 'value': encoded_image})
+        jsonResponse = response.json()
+        if jsonResponse["status_code"] == 200:
+            logging.info("Successfully uploaded image to cache")
+        else:
+            logging.info("FAIL!!! Could not store image back into cache!")
+            flash("WARNING! Image is too big for the cache...")
     logging.info("Successfully retrieved image")
     return jsonify({"success": success, "key": [key], "content": encoded_image})
 
