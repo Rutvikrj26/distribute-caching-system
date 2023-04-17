@@ -29,21 +29,19 @@ dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
 table = dynamodb.Table('users')  # Replace 'users' with the name of your table
 
 class User(UserMixin):
-    def __init__(self, email, password, status):
-        self.email = email
+    def __init__(self, email_status, password):
+        self.email_status = email_status
         self.password = password
-        self.status = status
 
     def get_id(self):
-        return self.email
+        return self.email_status
 
 @login_manager.user_loader
 def load_user(email_status):
-    email, status = email_status.split('_')
     user = aws_helper.dynamo_get_user(email_status)
     if not user:
         return None
-    return User(email=email, password=user['password'], status=int(status))
+    return User(email_status=email_status, password=user[0]['password'])
 
 # Extra Decorator to identify if the user logged in is employee or not
 def employee_login_required(f):
@@ -51,7 +49,7 @@ def employee_login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         status = int(current_user.get_id().split('_')[-1])
-        if current_user.is_authenticated and status == 0:
+        if current_user.is_authenticated and status >= 0:
             return f(*args, **kwargs)
         else:
             flash('You do not have access to this page.', 'danger')
@@ -63,7 +61,7 @@ def customer_login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         status = int(current_user.get_id().split('_')[-1])
-        if current_user.is_authenticated and status == 1:
+        if current_user.is_authenticated and status >= 1:
             return f(*args, **kwargs)
         else:
             flash('You do not have access to this page.', 'danger')
@@ -75,7 +73,7 @@ def admin_login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         status = int(current_user.get_id().split('_')[-1])
-        if current_user.is_authenticated and status == 2:
+        if current_user.is_authenticated and status >= 2:
             return f(*args, **kwargs)
         else:
             flash('You do not have access to this page.', 'danger')
@@ -121,8 +119,7 @@ def login():
         user = aws_helper.dynamo_get_user(email_status)  # This retrieves the user from DynamoDB by email
         if user is not []:
             if bcrypt.check_password_hash(user[0]['password'], password):
-                email, status = email_status.split('_')
-                user_obj = User(email, user[0]['password'], status)
+                user_obj = User(email_status, user[0]['password'])
                 login_user(user_obj)  # Use the login_user from flask_login to support DynamoDB
                 flash('You have been logged in!', 'success')
                 logging.info(f"User logged in: {email}")  # Log the user's email when they log in

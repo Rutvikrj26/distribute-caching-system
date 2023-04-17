@@ -1,7 +1,7 @@
 # from frontend import db
-from datetime import datetime
-from frontend import db, login_manager
-from flask_login import UserMixin
+# from datetime import datetime
+# from frontend import db, login_manager
+# from flask_login import UserMixin
 
 # class Image(db.Model):
 #     id = db.Column(db.String(120), primary_key=True)

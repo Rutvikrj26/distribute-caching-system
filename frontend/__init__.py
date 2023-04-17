@@ -12,9 +12,8 @@ frontend.config.from_object(Config)
 bootstrap = Bootstrap(frontend)
 db = SQLAlchemy(frontend)
 bcrypt = Bcrypt(frontend)
-login_manager = LoginManager(frontend)
-login_manager.login_view = 'login'
 
+login_manager = LoginManager(frontend)
 login_manager.login_view = 'login'
 login_manager.login_message_category = 'info'
 
