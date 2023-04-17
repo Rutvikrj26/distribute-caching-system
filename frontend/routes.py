@@ -49,7 +49,7 @@ def employee_login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         status = int(current_user.get_id().split('_')[-1])
-        if current_user.is_authenticated and status >= 0:
+        if current_user.is_authenticated and (status == 0 or status == 2):
             return f(*args, **kwargs)
         else:
             flash('You do not have access to this page.', 'danger')
@@ -93,12 +93,13 @@ def register():
         status = form.status.data
         email_status = email + '_' + str(status)
         response_code = aws_helper.dynamo_add_user(email_status, hashed_password)
-        if response_code == 200 and status == 1:
-            response = aws_helper.create_bucket(email)
-            if response == 'success':
-                logging.info(f"Bucket created for user: {email}")
-            else:
-                logging.info(f"Bucket creation failed for user: {email}")
+        if response_code == 200:
+            # if status == 1:
+            #     response = aws_helper.create_bucket(email)
+            #     if response == 'success':
+            #         logging.info(f"Bucket created for user: {email}")
+            #     else:
+            #         logging.info(f"Bucket creation failed for user: {email}")
             flash('Your account has been created! You are now able to log in', 'success')
             logging.info(f"New user registered: {form.email.data}") # Log the new user's email
             return redirect(url_for('login'))
@@ -163,7 +164,7 @@ def upload():
     logging.info("Accessed UPLOAD page")
     form = UploadForm()
     if form.validate_on_submit():
-        email = form.customer.data #ToDo: get current user
+        email = form.customer.data
         email_prefix = email.split("@")[0].strip()
         key = email_prefix + "-" + form.key.data
         file = form.value.data
@@ -228,7 +229,7 @@ def display():
     form = DisplayForm()
     if form.validate_on_submit():
         # Try cache first
-        key = form.key. # ToDo: prefix "<current user email prefix>-"
+        key = current_user.email.split("@")[0].strip() + "-" + form.key.data
         response = requests.post(Config.MEMAPP_URL+"/get", data={'key': key})
         jsonResponse = response.json()
         if jsonResponse["status_code"] == 200:
