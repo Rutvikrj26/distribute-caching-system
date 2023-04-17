@@ -8,6 +8,8 @@
     {{ wtf.quick_form(form) }}
     <hr>
     {% if image_location %}
-        <img src="{{ image_location }}">
+        {% for image in image_location %}
+            <img src="{{ image }}">
+        {% endfor %}
     {% endif %}
 {% endblock %}

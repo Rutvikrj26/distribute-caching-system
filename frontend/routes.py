@@ -229,7 +229,7 @@ def display():
     form = DisplayForm()
     if form.validate_on_submit():
         # Try cache first
-        key = current_user.email.split("@")[0].strip() + "-" + form.key.data
+        key = current_user.email_status.split("@")[0].strip() + "-" + form.key.data
         response = requests.post(Config.MEMAPP_URL+"/get", data={'key': key})
         jsonResponse = response.json()
         if jsonResponse["status_code"] == 200:
@@ -249,33 +249,33 @@ def display():
             for image in image_info:
                 image_bucket = image['Bucket']
                 image_key = image['Key']
-                my_file_storage = aws_helper.download_fileobj(image_key, image_bucket)
-                images.append(my_file_storage)
+                if image_key == key:
+                    my_file_storage = aws_helper.download_fileobj(image_key, image_bucket)
+                    images.append(my_file_storage)
             if len(images) == 0:
                 logging.info("FAIL!!! Image not in cache or on disk - BAD KEY")
                 flash("Could not find an image associated with this key.")
                 return redirect(url_for('display'))
             else:
                 # TODO: We can show multiple images when we need to, but choosing just one to start
-                my_file_storage = images[0]
-                b64string = b64encode(my_file_storage.read()).decode("ASCII")
-                image_location = 'data:image/png;base64,' + b64string
-            # Now need to store back in the cache!
-            for i in range(0, len(images)):
-                key = image_info[i]['Key']
-                image = images[i]
-                logging.info(f"PUTting image with key = {key} into cache")
-                b64string = b64encode(image.read()).decode("ASCII")
-                response = requests.post(Config.MEMAPP_URL+"/put", data={'key': key, 'value': b64string})
-                jsonResponse = response.json()
-                if jsonResponse["status_code"] == 200:
-                    logging.info("Successfully uploaded image to cache")
-                else:
-                    logging.info("FAIL!!! Could not store image back into cache!")
-                    flash("WARNING! Image is too big for the cache...")
+                image_locations = []
+                for image in images:
+                    # my_file_storage = images[0]
+                    b64string = b64encode(image.read()).decode("ASCII")
+                    image_location = 'data:image/png;base64,' + b64string
+                    image_locations.append(image_location)
+                    # Now need to store back in the cache!
+                    logging.info(f"Putting image with key = {key} into cache")
+                    response = requests.post(Config.MEMAPP_URL+"/put", data={'key': key, 'value': b64string})
+                    jsonResponse = response.json()
+                    if jsonResponse["status_code"] == 200:
+                        logging.info("Successfully uploaded image to cache")
+                    else:
+                        logging.info("FAIL!!! Could not store image back into cache!")
+                        flash("WARNING! Image is too big for the cache...")
         flash(f"Showing image for key = {key}")
         return render_template('display.html', title="ECE1779 - Group 25 - Display an Image", form=form,
-                               image_location=image_location)
+                               image_location=image_locations)
     return render_template('display.html', title="ECE1779 - Group 25 - Display an Image",
                            form=form, image_location=None)
 
