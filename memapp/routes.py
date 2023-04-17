@@ -25,6 +25,14 @@ memcache_data = {
     "commits_running": False
 }
 
+previous_memcache_data = {
+    "hits": 0,
+    "misses": 0,
+    "posts_served": 0,
+    "cache_size": 0,
+    "items_in_cache": 0
+}
+
 
 @memapp.route("/", methods=['GET'])
 def index():
@@ -109,10 +117,31 @@ def commit_update():
     while True:
         logging.info("Starting 5 second sleep timer...")
         logging.info(f"isRandom = {memcache_data['isRandom']}, max_size = {memcache_data['max_size']}")
-        time.sleep(60)
+        time.sleep(5)
+
+        # Update all statistics now with Cloudwatch, not database
+        new_hits = memcache_data['hits'] - previous_memcache_data['hits']
+        new_misses = memcache_data['misses'] - previous_memcache_data['misses']
+        new_posts_served = memcache_data['posts_served'] - previous_memcache_data['posts_served']
+        new_cache_size = memcache_data['cache_size'] - previous_memcache_data['cache_size']
+        new_items_in_cache = len(memcache) - previous_memcache_data['items_in_cache']
+        new_memcache_data = {
+            "timestamp": datetime.utcnow(),
+            "hits": new_hits,
+            "misses": new_misses,
+            "posts_served": new_posts_served,
+            "cache_size": new_cache_size
+        }
+
+        previous_memcache_data['hits'] = memcache_data['hits']
+        previous_memcache_data['misses'] = memcache_data['misses']
+        previous_memcache_data['posts_served'] = memcache_data['posts_served']
+        previous_memcache_data['cache_size'] = memcache_data['cache_size']
+        previous_memcache_data['items_in_cache'] = len(memcache)
+
         logging.info("Logging memapp stats to cloudwatch...")
         memcache_data["timestamp"] = datetime.utcnow()
-        aws_helper.log_memcache_stats(len(memcache), **memcache_data)
+        aws_helper.log_memcache_stats(new_items_in_cache, **new_memcache_data)
         logging.info("Logged memapp stats to cloudwatch...")
 
 
