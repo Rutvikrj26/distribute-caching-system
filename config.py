@@ -12,8 +12,8 @@ class Config(object):
     UPLOAD_FOLDER = 'static'
     ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
 
-    AWS_REGION = 'us-east-1'
-    S3_BUCKET_NAME = "ece-a2"
+    AWS_REGION = 'us-east-2'
+    S3_BUCKET_NAME = "ece-a3-gb"
     # Cloudwatch metrics - use these, so we don't accidentally make doubles that cost $$$
     cloudwatch_namespace = 'ECE1779/Grp25'
     misses = 'misses'
