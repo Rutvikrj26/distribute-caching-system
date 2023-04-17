@@ -12,7 +12,7 @@ from frontend.forms import SubmitButton, UploadForm, DisplayForm, MemcacheConfig
 from frontend import frontend, db, bcrypt
 import boto3
 from flask import flash, redirect, url_for
-from flask_login import UserMixin, login_required, logout_user, current_user
+from flask_login import UserMixin, login_required, logout_user, current_user, login_user
 from frontend import login_manager
 
 import logging
