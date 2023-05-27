@@ -2,7 +2,7 @@ from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 
 # Set the RDS endpoint
-rds_endpoint = "ece.cgdahn06kt1q.us-east-2.rds.amazonaws.com:3306"
+rds_endpoint = "endpoint"
 
 # Set the database credentials
 db_username = "admin"
